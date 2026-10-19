@@ -127,6 +127,9 @@ fn services(
             Err(e) if e == "cancelled" => None,
             Err(e) => Some(("file".into(), Err(e))),
         })),
+        read_uri: Some(Box::new(|uri| {
+            bridge::request("open_uri", uri, &[]).map(|(_, bytes)| bytes)
+        })),
         always_pick_save: true,
         default_save: Some(Box::new(move |doc, source| {
             if let Some(path) = documents

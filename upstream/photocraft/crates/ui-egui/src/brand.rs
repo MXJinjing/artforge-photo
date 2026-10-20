@@ -10,7 +10,12 @@ use photocraft_codecs::{ChannelLayout, SampleType};
 pub const APP_NAME: &str = if cfg!(feature = "harmonyos-ui") { "PhotoCraft For HarmonyOS" } else { "PhotoCraft" };
 
 /// 128 px: sharp at 20 pt on a 3× display, and the mipmaps keep it clean at 1×.
+#[cfg(not(feature = "harmonyos-ui"))]
 const ICON_PNG: &[u8] = include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/ai.storyteller.photocraft.png");
+/// HarmonyOS (ArtForge Photo / 艺工坊·修图): the HAP launcher icon (`AppScope/.../app_icon.png`),
+/// downscaled to 128 px with rounded corners.
+#[cfg(feature = "harmonyos-ui")]
+const ICON_PNG: &[u8] = include_bytes!("../../../assets/app-icon/artforge-photo-128.png");
 
 /// The icon's pixels (one transparent pixel if it couldn't be decoded, which a test rules out).
 fn decode() -> egui::ColorImage {

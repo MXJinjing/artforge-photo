@@ -841,6 +841,9 @@ pub fn invoke(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str, params: &V
         return None;
     }
     if let Some(section) = id.strip_prefix("edit.preferences.") {
+        if section == "plugIns" && !crate::plugin_ui::plugins_ui_enabled() {
+            return Some(Err("plug-ins are not available in this build".into()));
+        }
         return Some(Ok(json!({"dialog": open_preferences(app, section)})));
     }
     let dialog = |d: Option<u64>| Some(d.map(|d| json!({"dialog": d})).ok_or_else(|| "not available".to_string()));
@@ -1128,6 +1131,10 @@ fn preference_sections(values: &Value, search: &str) -> Vec<(&'static str, &'sta
         .iter()
         .copied()
         .filter(|(id, title)| {
+            // AppGallery / HarmonyOS: no Preferences › Plug-ins section.
+            if !crate::plugin_ui::plugins_ui_enabled() && *id == "plugIns" {
+                return false;
+            }
             query.is_empty()
                 || title.to_lowercase().contains(&query)
                 || tl!(title).to_lowercase().contains(&query)
@@ -2158,7 +2165,8 @@ mod tests {
         assert!(contains("performance", "performance"));
         assert!(contains("interface.uiScale", "interface"));
         assert!(preference_sections(&values, "this setting does not exist").is_empty());
-        assert_eq!(preference_sections(&values, "").len(), SECTIONS.len());
+        let expected = if crate::plugin_ui::plugins_ui_enabled() { SECTIONS.len() } else { SECTIONS.len() - 1 };
+        assert_eq!(preference_sections(&values, "").len(), expected);
     }
 
     #[test]

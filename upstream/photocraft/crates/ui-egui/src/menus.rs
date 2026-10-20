@@ -234,6 +234,10 @@ pub(crate) fn invoke_unguarded(app: &mut PhotocraftApp, ctx: &egui::Context, id:
         return r;
     }
     // Filter › Plug-ins (installed WebAssembly plug-ins, Install Plug-in…).
+    // HarmonyOS AppGallery builds omit plug-in UI and reject these commands.
+    if crate::plugin_ui::is_plugin_ui_id(id) && !crate::plugin_ui::plugins_ui_enabled() {
+        return Err("plug-ins are not available in this build".into());
+    }
     if let Some(r) = crate::plugin_ui::menu(app, id, &params) {
         return r;
     }
@@ -1174,6 +1178,10 @@ pub fn menu_items(app: &PhotocraftApp) -> Vec<MenuItem> {
         item.id = "layer.releaseClippingMask".into();
         item.label = "Release Clipping Mask".into();
         item.enabled = is_enabled(app, &item.id);
+    }
+    // AppGallery / HarmonyOS: remove Filter › Plug-ins and Preferences › Plug-ins entirely.
+    if !crate::plugin_ui::plugins_ui_enabled() {
+        items.retain(|i| !crate::plugin_ui::is_plugin_menu_item(i));
     }
     items
 }

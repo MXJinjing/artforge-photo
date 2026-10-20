@@ -1,5 +1,8 @@
 //! Filter › Plug-ins: one menu item per installed WebAssembly filter plug-in (`plugin.*` engine
 //! commands), with a generated dialog and live preview for plug-ins that take parameters.
+//!
+//! Under `harmonyos-ui` (AppGallery shipping builds), plug-in UI entry points are omitted entirely:
+//! listed apps must not expose loading or running plug-ins.
 
 use serde_json::{Map, Value, json};
 
@@ -9,8 +12,26 @@ use crate::menus::MenuItem;
 /// Menu ids of installed plug-ins: `plugin.filter.<plug-in id>`.
 const PREFIX: &str = "plugin.filter.";
 
+/// Whether this build exposes Filter › Plug-ins / Preferences › Plug-ins UI.
+pub const fn plugins_ui_enabled() -> bool {
+    !cfg!(feature = "harmonyos-ui")
+}
+
+/// Menu / preferences ids that load or manage plug-ins.
+pub fn is_plugin_ui_id(id: &str) -> bool {
+    id.starts_with("plugin.") || id == "edit.preferences.plugIns"
+}
+
+/// True when this menu row belongs to the Plug-ins UI (Filter › Plug-ins or Preferences › Plug-ins).
+pub fn is_plugin_menu_item(item: &MenuItem) -> bool {
+    is_plugin_ui_id(&item.id) || item.path.iter().any(|p| p == "Plug-ins")
+}
+
 /// Inserts the installed plug-ins into Filter › Plug-ins, above "Install Plug-in…".
 pub fn insert_menu_items(app: &PhotocraftApp, items: &mut Vec<MenuItem>) {
+    if !plugins_ui_enabled() {
+        return;
+    }
     let plugins = photocraft_plugins::registry::list();
     let Some(at) = items.iter().position(|i| i.id == "plugin.install") else { return };
     // `MenuItem::path` is the untranslated English path from the command's engine spec: the menu
@@ -45,6 +66,9 @@ pub fn insert_menu_items(app: &PhotocraftApp, items: &mut Vec<MenuItem>) {
 
 /// Enabled state of a plug-in menu item (`None` for other ids).
 pub fn is_enabled(app: &PhotocraftApp, id: &str) -> Option<bool> {
+    if !plugins_ui_enabled() {
+        return None;
+    }
     let pid = id.strip_prefix(PREFIX)?;
     Some(photocraft_plugins::registry::get(pid).is_some() && app.session.is_enabled("plugin.run"))
 }
@@ -52,6 +76,9 @@ pub fn is_enabled(app: &PhotocraftApp, id: &str) -> Option<bool> {
 /// Runs a plug-in menu item: straight away when it has no parameters (or params were given),
 /// else through its dialog. "Install Plug-in…" without params opens its path dialog.
 pub fn menu(app: &mut PhotocraftApp, id: &str, params: &Value) -> Option<Result<Value, String>> {
+    if !plugins_ui_enabled() {
+        return None;
+    }
     let given = params.as_object().is_some_and(|o| !o.is_empty());
     if id == "plugin.install" && !given {
         return Some(Ok(json!({"dialog": crate::filter_dialog::open(app, "plugin.install")})));
@@ -74,6 +101,7 @@ pub fn menu(app: &mut PhotocraftApp, id: &str, params: &Value) -> Option<Result<
 mod tests {
     use super::*;
 
+    #[cfg(not(feature = "harmonyos-ui"))]
     #[test]
     fn installed_plugins_appear_under_filter_plugins_and_run() {
         let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
@@ -100,6 +128,7 @@ mod tests {
 
     /// Plug-in rows carry the untranslated English menu path like every other item, so they still
     /// land under Filter › Plug-ins when the UI language translates those menu names (#2540).
+    #[cfg(not(feature = "harmonyos-ui"))]
     #[test]
     fn plugin_menu_path_stays_untranslated_in_other_languages() {
         let ja = crate::i18n::Lang::from_code("ja").expect("registered language");
@@ -115,5 +144,22 @@ mod tests {
         assert_eq!(me.path, ["Filter", "Plug-ins"], "plug-in row sits where the menu renderer looks for it");
         let install = items.iter().find(|i| i.id == "plugin.install").expect("Install Plug-in… listed");
         assert_eq!(me.path, install.path, "same submenu as Install Plug-in…");
+    }
+
+    #[cfg(feature = "harmonyos-ui")]
+    #[test]
+    fn harmonyos_hides_all_plugin_menu_and_preference_entries() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        let ctx = egui::Context::default();
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../plugins/tests/fixtures/invert.wasm");
+        // Engine may still install for tests; UI must not expose it.
+        let _ = app.run("plugin.install", json!({"path": path}));
+        let items = crate::menus::menu_items(&app);
+        assert!(items.iter().all(|i| !is_plugin_menu_item(i)), "no Plug-ins menu rows: {:?}", items.iter().filter(|i| is_plugin_menu_item(i)).map(|i| &i.id).collect::<Vec<_>>());
+        assert!(!items.iter().any(|i| i.id == "plugin.install" || i.id == "edit.preferences.plugIns"));
+        assert!(!items.iter().any(|i| i.path.iter().any(|p| p == "Plug-ins")));
+        assert!(crate::menus::invoke(&mut app, &ctx, "plugin.install", json!({})).is_err());
+        assert!(crate::menus::invoke(&mut app, &ctx, "plugin.run", json!({"id": "x"})).is_err());
+        assert!(crate::menus::invoke(&mut app, &ctx, "edit.preferences.plugIns", json!({})).is_err());
     }
 }

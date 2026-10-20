@@ -32,6 +32,11 @@ pub const PRIVACY_STATEMENT: &str = "artforge-privacy://statement";
 #[cfg(feature = "harmonyos-ui")]
 pub const USER_AGREEMENT: &str = "artforge-privacy://agreement";
 
+/// Upstream PhotoCraft (desktop / Web) open-source repository.
+pub const PHOTOCRAFT_GITHUB: &str = "https://github.com/storytold/photocraft";
+/// HarmonyOS native open-source port that this listing fork is based on.
+pub const PHOTOCRAFT_HMOS_GITHUB: &str = "https://github.com/MXJinjing/photocraft-hmos";
+
 /// Help-menu link commands: (id, url). Labels live in `menus::UI_COMMANDS`.
 #[cfg(not(feature = "harmonyos-ui"))]
 pub const COMMANDS: &[(&str, &str)] =
@@ -110,6 +115,28 @@ pub fn link_row(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     }
 }
 
+/// HarmonyOS About: open-source attribution with GitHub entry points (not shown in Help).
+#[cfg(feature = "harmonyos-ui")]
+pub fn about_oss_attribution(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
+    ui.add_space(10.0);
+    ui.label("本应用基于以下开源项目构建（MIT / Apache-2.0 双许可）：");
+    ui.add_space(8.0);
+
+    ui.label("PhotoCraft — 上游桌面 / Web 开源图像编辑器");
+    let r = ui.link("PhotoCraft GitHub").on_hover_text(PHOTOCRAFT_GITHUB);
+    if r.clicked() {
+        open(app, ui.ctx(), PHOTOCRAFT_GITHUB);
+    }
+
+    ui.add_space(6.0);
+    ui.label("photocraft-hmos — HarmonyOS 原生开源移植");
+    let r = ui.link("photocraft-hmos GitHub").on_hover_text(PHOTOCRAFT_HMOS_GITHUB);
+    if r.clicked() {
+        open(app, ui.ctx(), PHOTOCRAFT_HMOS_GITHUB);
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -172,9 +199,19 @@ mod tests {
 
     #[cfg(feature = "harmonyos-ui")]
     #[test]
-    fn harmonyos_home_and_about_hide_project_links_and_credit_tabs() {
+    fn harmonyos_home_hides_promo_links_and_about_shows_oss_github() {
         use egui_kittest::{Harness, kittest::Queryable};
-        let app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        use std::sync::{Arc, Mutex};
+        let opened: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+        let rec = opened.clone();
+        let services = crate::Services {
+            open_url: Some(Box::new(move |u: &str| {
+                rec.lock().unwrap().push(u.to_string());
+                Ok(())
+            })),
+            ..Default::default()
+        };
+        let app = PhotocraftApp::new(photocraft_engine::Session::new(), services);
         let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_ui_state(
             |ui, app| {
                 app.host_logic(ui.ctx());
@@ -184,13 +221,13 @@ mod tests {
         );
         PhotocraftApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
         h.run_steps(3);
-        for label in ["Discord", "Join us on Discord", "PhotoCraft website", "GitHub", "ArtCraft", "Privacy Policy", "User Agreement"] {
-            // Privacy entries live in Help, not on the home screen.
-            if label == "Privacy Policy" || label == "User Agreement" {
-                continue;
-            }
+        for label in ["Discord", "Join us on Discord", "PhotoCraft website", "ArtCraft"] {
             assert!(h.query_by_label(label).is_none(), "home: {label}");
         }
+        // Help must not list GitHub / issue; About is the OSS credit surface.
+        let help: Vec<String> = crate::menus::menu_items(h.state()).into_iter().filter(|i| i.path == ["Help"]).map(|i| i.id).collect();
+        assert!(!help.iter().any(|id| id == "help.github" || id == "help.reportIssue" || id == "help.discord"));
+
         for tab in ["about", "contributors", "models"] {
             h.state_mut().ui.dialogs.clear();
             h.state_mut().ui.open_dialog(crate::state::DialogKind::About, serde_json::from_value(json!({"tab": tab})).unwrap());
@@ -198,10 +235,19 @@ mod tests {
             assert!(h.query_by_label(&format!("About {}", crate::brand::APP_NAME)).is_some());
             assert!(h.query_by_label_contains("Upstream PhotoCraft: ").is_some());
             assert!(h.query_by_label_contains("HarmonyOS HAP: ").is_some());
-            for label in ["Contributors", "Models", "Join us on Discord", "PhotoCraft website", "GitHub", "ArtCraft"] {
+            assert!(h.query_by_label_contains("本应用基于以下开源项目构建").is_some());
+            assert!(h.query_by_label("PhotoCraft GitHub").is_some());
+            assert!(h.query_by_label("photocraft-hmos GitHub").is_some());
+            for label in ["Contributors", "Models", "Join us on Discord", "PhotoCraft website", "ArtCraft"] {
                 assert!(h.query_by_label(label).is_none(), "about {tab}: {label}");
             }
         }
+        h.get_by_label("PhotoCraft GitHub").click();
+        h.run_steps(1);
+        assert_eq!(opened.lock().unwrap().last().map(String::as_str), Some(PHOTOCRAFT_GITHUB));
+        h.get_by_label("photocraft-hmos GitHub").click();
+        h.run_steps(1);
+        assert_eq!(opened.lock().unwrap().last().map(String::as_str), Some(PHOTOCRAFT_HMOS_GITHUB));
     }
 
     #[test]

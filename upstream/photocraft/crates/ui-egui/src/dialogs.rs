@@ -200,15 +200,23 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
                 ui.set_min_width(800.0);
             }
             // The About window: room for the contributor table, the same width on every tab.
+            // HarmonyOS About keeps OSS GitHub attribution (no Contributors/Models tabs).
             let about_tabs =
                 crate::links::SHOW_PROJECT_LINKS && d.kind == DialogKind::About && d.fields.get("systemInfo").and_then(Value::as_bool) != Some(true);
+            let about_oss = cfg!(feature = "harmonyos-ui")
+                && d.kind == DialogKind::About
+                && d.fields.get("systemInfo").and_then(Value::as_bool) != Some(true);
             if about_tabs {
                 ui.set_min_width(700.0);
+            } else if about_oss {
+                ui.set_min_width(480.0);
             }
             ui.set_max_width(wide.unwrap_or(if d.kind == DialogKind::NewDocument {
                 800.0
             } else if about_tabs {
                 700.0
+            } else if about_oss {
+                520.0
             } else if d.kind == DialogKind::LayerStyle || d.fields.contains_key("__export") || crate::color_picker_ui::owns(&d.fields) {
                 600.0
             } else if compact {
@@ -513,7 +521,7 @@ fn about_tab_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, tab: &str) {
         "models" => crate::credits::models_ui(ui),
         _ => {
             let blurb = if cfg!(feature = "harmonyos-ui") {
-                "由 MXJinjing 维护的非官方鸿蒙移植版，基于上游PhotoCraft开源项目。"
+                "由 MXJinjing 维护的非官方鸿蒙移植版，基于上游 PhotoCraft 与 photocraft-hmos 开源项目。"
             } else {
                 tl!("PhotoCraft — an open-source, native image editor written in Rust.")
             };
@@ -528,6 +536,10 @@ fn about_tab_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, tab: &str) {
                     ui.add_space(8.0);
                     crate::links::link_row(app, ui);
                 });
+            }
+            #[cfg(feature = "harmonyos-ui")]
+            {
+                crate::links::about_oss_attribution(app, ui);
             }
             ui.add_space(10.0);
             ui.weak("egui · wgpu · photocraft-engine");

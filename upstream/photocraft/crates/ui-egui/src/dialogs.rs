@@ -520,6 +520,12 @@ fn about_tab_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, tab: &str) {
         "contributors" => crate::credits::contributors_ui(app, ui),
         "models" => crate::credits::models_ui(ui),
         _ => {
+            #[cfg(feature = "harmonyos-ui")]
+            {
+                // Product name as a heading, larger than body / version lines.
+                ui.label(egui::RichText::new(crate::brand::app_name()).font(crate::theme::semibold(26.0)));
+                ui.add_space(10.0);
+            }
             if !cfg!(feature = "harmonyos-ui") {
                 ui.label(tl!("PhotoCraft — an open-source, native image editor written in Rust."));
             }

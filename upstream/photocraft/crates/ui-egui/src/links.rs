@@ -235,6 +235,7 @@ mod tests {
             h.state_mut().ui.open_dialog(crate::state::DialogKind::About, serde_json::from_value(json!({"tab": tab})).unwrap());
             h.run_steps(3);
             assert!(h.query_by_label(&format!("About {}", crate::brand::APP_NAME)).is_some());
+            assert!(h.query_by_label(crate::brand::app_name()).is_some(), "About heading shows the product name");
             assert!(h.query_by_label_contains("Upstream PhotoCraft: ").is_some());
             assert!(h.query_by_label_contains("HarmonyOS HAP: ").is_some());
             assert!(h.query_by_label_contains("open-source").is_some() || h.query_by_label_contains("开源项目").is_some());

@@ -2777,6 +2777,11 @@ curves	Smooth	平滑
 	Connected pen	已连接的笔
 	No pen connected	未连接笔
 
+
+# HarmonyOS Help › privacy托管
+	Privacy Policy	隐私政策
+	User Agreement	用户协议
+
 # Window full screen (HarmonyOS host)
 	Enter Full Screen	进入全屏
 	Exit Full Screen	退出全屏

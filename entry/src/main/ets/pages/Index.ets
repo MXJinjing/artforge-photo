@@ -28,6 +28,8 @@ import { SYSTEM_THEME_DARK, SYSTEM_THEME_LIGHT } from '../SystemTheme';
 import {
   PRIVACY_ALLOWED_KEY,
   awaitPrivacyConsent,
+  isHostedPrivacyScheme,
+  openHostedPrivacyScheme,
   openHostedPrivacyStatement,
   queryPrivacyAgreed
 } from '../privacy/PrivacyConsent';
@@ -275,8 +277,15 @@ struct Index {
     else if (request.kind === 'close') {
       allowConfirmedClose(); this.context.terminateSelf();
     } else if (request.kind === 'url') {
-      this.context.startAbility({ action: 'ohos.want.action.viewData', uri: request.text })
-        .catch((error: BusinessError) => { console.error(`External link: ${error.message}`); });
+      // Help › 隐私政策 / 用户协议：伪协议由 getAppPrivacyMgmtInfo 解析为托管 https 链接。
+      if (isHostedPrivacyScheme(request.text)) {
+        if (!openHostedPrivacyScheme(this.context, request.text)) {
+          this.failure = '暂无可用的隐私托管链接。请确认已在应用市场完成隐私托管配置，或在系统弹窗中同意隐私政策后再试。';
+        }
+      } else {
+        this.context.startAbility({ action: 'ohos.want.action.viewData', uri: request.text })
+          .catch((error: BusinessError) => { console.error(`External link: ${error.message}`); });
+      }
     }
   }
   private async printFile(id: number, metadata: string, bytes: ArrayBuffer): Promise<void> {

@@ -49,11 +49,19 @@ export function queryPrivacyAgreed(): PrivacyGateResult {
   }
 }
 
+/** AppPrivacyLink.type：1 隐私声明，2 用户协议（以官方枚举为准）。 */
+export const PRIVACY_LINK_STATEMENT: number = 1;
+export const PRIVACY_LINK_AGREEMENT: number = 2;
+
+/** Help / 桥接用的伪协议，由 openHostedPrivacyScheme 解析为托管真实 URL。 */
+export const PRIVACY_SCHEME_STATEMENT: string = 'artforge-privacy://statement';
+export const PRIVACY_SCHEME_AGREEMENT: string = 'artforge-privacy://agreement';
+
 /**
- * 查询托管下发的隐私声明 URL（不要写死自建链接作为正式声明）。
- * type 常见：1 隐私声明，2 用户协议（以官方枚举为准，取第一条非空 url）。
+ * 查询托管下发的指定类型 URL（不要写死自建链接作为正式声明）。
+ * 找不到对应 type 时：隐私声明可退回第一条非空；用户协议则返回空。
  */
-export function readHostedPrivacyStatementUrl(): string {
+export function readHostedPrivacyUrl(linkType: number): string {
   try {
     let info: privacyManager.AppPrivacyMgmtInfo = privacyManager.getAppPrivacyMgmtInfo();
     let links: privacyManager.AppPrivacyLink[] = info.privacyInfo;
@@ -66,16 +74,19 @@ export function readHostedPrivacyStatementUrl(): string {
       if (url.length === 0) {
         continue;
       }
-      // 优先隐私声明类链接；若枚举不可用则退回第一条非空
-      let linkType: number = (links[i] as privacyManager.AppPrivacyLink).type as number;
-      if (linkType === 1 || linkType === undefined) {
+      let currentType: number = (links[i] as privacyManager.AppPrivacyLink).type as number;
+      if (currentType === linkType) {
         return url;
       }
       if (fallback.length === 0) {
         fallback = url;
       }
     }
-    return fallback;
+    // 仅隐私声明允许退回第一条非空；用户协议必须精确匹配，避免误开隐私页。
+    if (linkType === PRIVACY_LINK_STATEMENT) {
+      return fallback;
+    }
+    return '';
   } catch (error) {
     let failure = error as BusinessError;
     console.info(`${TAG}: getAppPrivacyMgmtInfo unavailable: ${failure.code} ${failure.message}`);
@@ -83,11 +94,13 @@ export function readHostedPrivacyStatementUrl(): string {
   return '';
 }
 
-/** 用系统浏览器打开托管隐私声明；无链接时返回 false。 */
-export function openHostedPrivacyStatement(context: common.UIAbilityContext): boolean {
-  let url: string = readHostedPrivacyStatementUrl();
+/** 查询托管隐私声明 URL（type=1，找不到则退回第一条非空）。 */
+export function readHostedPrivacyStatementUrl(): string {
+  return readHostedPrivacyUrl(PRIVACY_LINK_STATEMENT);
+}
+
+function openHttpsUrl(context: common.UIAbilityContext, url: string): boolean {
   if (url.length === 0) {
-    console.info(`${TAG}: no hosted privacy URL yet`);
     return false;
   }
   context.startAbility({
@@ -98,6 +111,40 @@ export function openHostedPrivacyStatement(context: common.UIAbilityContext): bo
     console.error(`${TAG}: open privacy url ${error.code} ${error.message}`);
   });
   return true;
+}
+
+/** 用系统浏览器打开指定类型的托管链接；无链接时返回 false。 */
+export function openHostedPrivacyLink(context: common.UIAbilityContext, linkType: number): boolean {
+  let url: string = readHostedPrivacyUrl(linkType);
+  if (url.length === 0) {
+    console.info(`${TAG}: no hosted privacy URL for type ${linkType}`);
+    return false;
+  }
+  return openHttpsUrl(context, url);
+}
+
+/** 用系统浏览器打开托管隐私声明；无链接时返回 false。 */
+export function openHostedPrivacyStatement(context: common.UIAbilityContext): boolean {
+  return openHostedPrivacyLink(context, PRIVACY_LINK_STATEMENT);
+}
+
+/**
+ * 解析 Help 菜单下发的 artforge-privacy:// 伪协议并打开对应托管页。
+ * 未知 scheme 返回 false。
+ */
+export function openHostedPrivacyScheme(context: common.UIAbilityContext, schemeOrUrl: string): boolean {
+  if (schemeOrUrl === PRIVACY_SCHEME_STATEMENT || schemeOrUrl.indexOf('artforge-privacy://statement') === 0) {
+    return openHostedPrivacyLink(context, PRIVACY_LINK_STATEMENT);
+  }
+  if (schemeOrUrl === PRIVACY_SCHEME_AGREEMENT || schemeOrUrl.indexOf('artforge-privacy://agreement') === 0) {
+    return openHostedPrivacyLink(context, PRIVACY_LINK_AGREEMENT);
+  }
+  return false;
+}
+
+/** 是否为 Help / 原生桥使用的隐私伪协议。 */
+export function isHostedPrivacyScheme(url: string): boolean {
+  return url.indexOf('artforge-privacy://') === 0;
 }
 
 /**

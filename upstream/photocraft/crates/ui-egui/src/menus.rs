@@ -103,8 +103,14 @@ pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("help.website", "PhotoCraft Website", &["Help"], None),
     #[cfg(not(feature = "harmonyos-ui"))]
     ("help.artcraftWebsite", "ArtCraft Website", &["Help"], None),
+    #[cfg(not(feature = "harmonyos-ui"))]
     ("help.github", "PhotoCraft on GitHub", &["Help"], None),
+    #[cfg(not(feature = "harmonyos-ui"))]
     ("help.reportIssue", "Report an Issue…", &["Help"], None),
+    #[cfg(feature = "harmonyos-ui")]
+    ("help.privacyPolicy", "Privacy Policy", &["Help"], None),
+    #[cfg(feature = "harmonyos-ui")]
+    ("help.userAgreement", "User Agreement", &["Help"], None),
     ("help.systemInfo", "System Info…", &["Help"], None),
     ("help.about", "About PhotoCraft", &["Help"], None),
 ];
@@ -196,7 +202,7 @@ pub(crate) fn invoke_unguarded(app: &mut PhotocraftApp, ctx: &egui::Context, id:
     if let Some(result) = crate::panel_docking::command(app, id, &params) {
         return result;
     }
-    // Help › Discord, website, GitHub, Report an Issue.
+    // Help › community / project links, or HarmonyOS privacy托管 entries.
     if let Some(url) = crate::links::url_for(id) {
         return Ok(crate::links::open(app, ctx, url));
     }

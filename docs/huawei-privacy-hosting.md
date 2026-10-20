@@ -95,6 +95,14 @@
 - `entryability/EntryAbility.ets`：隐私未同意前不调用 `native.active(true)`。
 - **禁止**自绘首启隐私 CustomDialog（与系统托管弹窗重复会被拒审）。
 
+### 帮助菜单入口
+
+鸿蒙构建的「帮助」菜单不再提供 GitHub / 问题反馈 / Discord 链接。改为：
+
+- **隐私政策**、**用户协议**：通过 `getAppPrivacyMgmtInfo` 打开华为托管下发的 https 链接（Rust 侧使用 `artforge-privacy://statement|agreement` 伪协议，由 ArkTS `PrivacyConsent.openHostedPrivacyScheme` 解析）。
+- 若托管尚未配置或 API 暂无链接，界面提示中文说明，不自绘首启弹窗。
+
+
 ### 上架前 debug 模拟弹窗（可选）
 
 未上架时，可在 **debug** 包的 `entry/src/main/module.json5` 的 `module.metadata` 中增加（URL 须为 https，且为你已生成的托管链接或临时可访问页）：

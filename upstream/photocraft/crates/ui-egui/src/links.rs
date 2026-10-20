@@ -1,6 +1,10 @@
 //! Community and project links: the Help menu, the About dialog, the start screen and the title
 //! bar all open these. URLs follow the crafting-app pattern (`getartcraft.com/apps/<app>`,
 //! `github.com/storytold/<app>`).
+//!
+//! Under `harmonyos-ui`, project/community URLs are omitted from the Help menu. Privacy and
+//! user-agreement entries use host-resolved AppGallery privacy-management URLs
+//! (`artforge-privacy://…` sent to the ArkTS open_url bridge).
 
 use serde_json::{Value, json};
 
@@ -9,22 +13,33 @@ use crate::PhotocraftApp;
 /// Whether this host exposes community and project entry points.
 pub const SHOW_PROJECT_LINKS: bool = !cfg!(feature = "harmonyos-ui");
 
+#[cfg(not(feature = "harmonyos-ui"))]
 pub const DISCORD: &str = "https://discord.gg/artcraft";
+#[cfg(feature = "harmonyos-ui")]
+pub const DISCORD: &str = "";
+
 pub const ARTCRAFT_WEBSITE: &str = "https://getartcraft.com";
 pub const APP_PAGE: &str = "https://getartcraft.com/apps/photocraft";
+
 #[cfg(not(feature = "harmonyos-ui"))]
 pub const GITHUB: &str = "https://github.com/storytold/photocraft";
 #[cfg(not(feature = "harmonyos-ui"))]
 pub const ISSUES: &str = "https://github.com/storytold/photocraft/issues";
-// HarmonyOS-specific problems belong to the fork rather than the upstream project.
+
+/// Sentinel schemes resolved by the HarmonyOS host via `getAppPrivacyMgmtInfo`.
 #[cfg(feature = "harmonyos-ui")]
-pub const GITHUB: &str = "https://github.com/MXJinjing/photocraft-hmos";
+pub const PRIVACY_STATEMENT: &str = "artforge-privacy://statement";
 #[cfg(feature = "harmonyos-ui")]
-pub const ISSUES: &str = "https://github.com/MXJinjing/photocraft-hmos/issues";
+pub const USER_AGREEMENT: &str = "artforge-privacy://agreement";
 
 /// Help-menu link commands: (id, url). Labels live in `menus::UI_COMMANDS`.
+#[cfg(not(feature = "harmonyos-ui"))]
 pub const COMMANDS: &[(&str, &str)] =
     &[("help.discord", DISCORD), ("help.website", APP_PAGE), ("help.artcraftWebsite", ARTCRAFT_WEBSITE), ("help.github", GITHUB), ("help.reportIssue", ISSUES)];
+
+#[cfg(feature = "harmonyos-ui")]
+pub const COMMANDS: &[(&str, &str)] =
+    &[("help.privacyPolicy", PRIVACY_STATEMENT), ("help.userAgreement", USER_AGREEMENT)];
 
 pub fn url_for(id: &str) -> Option<&'static str> {
     COMMANDS.iter().find(|c| c.0 == id).map(|c| c.1)
@@ -44,37 +59,54 @@ pub fn open(app: &mut PhotocraftApp, ctx: &egui::Context, url: &str) -> Value {
 
 /// The prominent "Join us on Discord" button.
 pub fn discord_button(app: &mut PhotocraftApp, ui: &mut egui::Ui, min_width: f32) -> egui::Response {
-    let r = crate::widgets::primary_button(ui, tl!("Join us on Discord"), min_width).on_hover_text(DISCORD);
-    if r.clicked() {
-        open(app, ui.ctx(), DISCORD);
+    #[cfg(not(feature = "harmonyos-ui"))]
+    {
+        let r = crate::widgets::primary_button(ui, tl!("Join us on Discord"), min_width).on_hover_text(DISCORD);
+        if r.clicked() {
+            open(app, ui.ctx(), DISCORD);
+        }
+        r
     }
-    r
+    #[cfg(feature = "harmonyos-ui")]
+    {
+        let _ = (app, min_width);
+        // Project links are hidden on HarmonyOS; keep a no-op stub for shared call sites.
+        ui.allocate_response(egui::Vec2::ZERO, egui::Sense::hover())
+    }
 }
 
 /// "PhotoCraft website · GitHub · ArtCraft" as links, centred. Clicks route through [`open`] (the
 /// platform browser service) rather than `ui.hyperlink_to`, which uses the unreliable `ctx.open_url`.
 pub fn link_row(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
-    let t = crate::theme::Tokens::get(ui.ctx());
-    let links = [(tl!("PhotoCraft website"), APP_PAGE), (tl!("GitHub"), GITHUB), (tl!("ArtCraft"), ARTCRAFT_WEBSITE)];
-    let font = egui::FontId::proportional(12.5);
-    let sep = "  ·  ";
-    let width: f32 = links.iter().map(|(l, _)| ui.painter().layout_no_wrap((*l).into(), font.clone(), t.text).size().x).sum::<f32>()
-        + 2.0 * ui.painter().layout_no_wrap(sep.into(), font.clone(), t.text).size().x;
-    let mut clicked: Option<&str> = None;
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        ui.add_space(((ui.available_width() - width) / 2.0).max(0.0));
-        for (i, (label, url)) in links.iter().enumerate() {
-            if i > 0 {
-                ui.label(egui::RichText::new(sep).font(font.clone()).color(t.text_faint));
+    #[cfg(feature = "harmonyos-ui")]
+    {
+        let _ = (app, ui);
+        return;
+    }
+    #[cfg(not(feature = "harmonyos-ui"))]
+    {
+        let t = crate::theme::Tokens::get(ui.ctx());
+        let links = [(tl!("PhotoCraft website"), APP_PAGE), (tl!("GitHub"), GITHUB), (tl!("ArtCraft"), ARTCRAFT_WEBSITE)];
+        let font = egui::FontId::proportional(12.5);
+        let sep = "  ·  ";
+        let width: f32 = links.iter().map(|(l, _)| ui.painter().layout_no_wrap((*l).into(), font.clone(), t.text).size().x).sum::<f32>()
+            + 2.0 * ui.painter().layout_no_wrap(sep.into(), font.clone(), t.text).size().x;
+        let mut clicked: Option<&str> = None;
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 0.0;
+            ui.add_space(((ui.available_width() - width) / 2.0).max(0.0));
+            for (i, (label, url)) in links.iter().enumerate() {
+                if i > 0 {
+                    ui.label(egui::RichText::new(sep).font(font.clone()).color(t.text_faint));
+                }
+                if ui.link(egui::RichText::new(*label).font(font.clone()).color(t.accent)).on_hover_text(*url).clicked() {
+                    clicked = Some(url);
+                }
             }
-            if ui.link(egui::RichText::new(*label).font(font.clone()).color(t.accent)).on_hover_text(*url).clicked() {
-                clicked = Some(url);
-            }
+        });
+        if let Some(url) = clicked {
+            open(app, ui.ctx(), url);
         }
-    });
-    if let Some(url) = clicked {
-        open(app, ui.ctx(), url);
     }
 }
 
@@ -103,9 +135,12 @@ mod tests {
             crate::menus::invoke(&mut app, &ctx, id, json!({})).unwrap();
             assert_eq!(opened.lock().unwrap().last().map(String::as_str), Some(*url), "{id}");
         }
-        // The direct open() helper (Discord button / start-page links) also uses it.
-        open(&mut app, &ctx, DISCORD);
-        assert_eq!(opened.lock().unwrap().last().map(String::as_str), Some(DISCORD));
+        #[cfg(not(feature = "harmonyos-ui"))]
+        {
+            // The direct open() helper (Discord button / start-page links) also uses it.
+            open(&mut app, &ctx, DISCORD);
+            assert_eq!(opened.lock().unwrap().last().map(String::as_str), Some(DISCORD));
+        }
     }
 
     #[cfg(not(feature = "harmonyos-ui"))]
@@ -121,14 +156,18 @@ mod tests {
 
     #[cfg(feature = "harmonyos-ui")]
     #[test]
-    fn harmonyos_help_menu_keeps_fork_links_and_local_information() {
+    fn harmonyos_help_menu_lists_privacy_links_and_local_information() {
         let app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
         let help: Vec<String> = crate::menus::menu_items(&app).into_iter().filter(|i| i.path == ["Help"]).map(|i| i.id).collect();
-        assert_eq!(help, ["help.github", "help.reportIssue", "---", "help.systemInfo", "help.about"]);
+        assert_eq!(help, ["help.privacyPolicy", "help.userAgreement", "---", "help.systemInfo", "help.about"]);
         let links: Vec<&str> = crate::menus::UI_COMMANDS.iter().filter(|c| url_for(c.0).is_some()).map(|c| c.0).collect();
-        assert_eq!(links, ["help.github", "help.reportIssue"]);
-        assert_eq!(url_for("help.github"), Some("https://github.com/MXJinjing/photocraft-hmos"));
-        assert_eq!(url_for("help.reportIssue"), Some("https://github.com/MXJinjing/photocraft-hmos/issues"));
+        assert_eq!(links, ["help.privacyPolicy", "help.userAgreement"]);
+        assert_eq!(url_for("help.privacyPolicy"), Some(PRIVACY_STATEMENT));
+        assert_eq!(url_for("help.userAgreement"), Some(USER_AGREEMENT));
+        assert!(url_for("help.github").is_none());
+        assert!(url_for("help.reportIssue").is_none());
+        assert!(url_for("help.discord").is_none());
+        assert!(!DISCORD.contains("discord"));
     }
 
     #[cfg(feature = "harmonyos-ui")]
@@ -145,7 +184,11 @@ mod tests {
         );
         PhotocraftApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
         h.run_steps(3);
-        for label in ["Discord", "Join us on Discord", "PhotoCraft website", "GitHub", "ArtCraft"] {
+        for label in ["Discord", "Join us on Discord", "PhotoCraft website", "GitHub", "ArtCraft", "Privacy Policy", "User Agreement"] {
+            // Privacy entries live in Help, not on the home screen.
+            if label == "Privacy Policy" || label == "User Agreement" {
+                continue;
+            }
             assert!(h.query_by_label(label).is_none(), "home: {label}");
         }
         for tab in ["about", "contributors", "models"] {
@@ -165,14 +208,9 @@ mod tests {
     fn link_commands_open_their_urls() {
         let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
         let ctx = egui::Context::default();
-        for (id, url) in [
-            ("help.discord", "https://discord.gg/artcraft"),
-            ("help.website", "https://getartcraft.com/apps/photocraft"),
-            ("help.github", GITHUB),
-            ("help.reportIssue", ISSUES),
-        ] {
+        for (id, url) in COMMANDS {
             let r = crate::menus::invoke(&mut app, &ctx, id, serde_json::json!({})).unwrap();
-            assert_eq!(r["url"], url);
+            assert_eq!(r["url"], *url);
             assert_eq!(app.ui.status, format!("Opened {url}"));
         }
     }

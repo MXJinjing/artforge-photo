@@ -54,7 +54,7 @@ Run `python3 scripts/test_native_touch.py` for the actual C++ Touch/Mouse/Axis/H
 
 ## Stylus control and mouse cursors
 
-The title-bar Stylus control, immediately left of Discord, appears after the platform first reports a connected pen. The feed latches that discovery for the current app lifetime, so disconnecting the pen keeps its settings accessible; a pen contact alone does not count as a connection report.
+The title-bar Stylus control appears after the platform first reports a connected pen. The feed latches that discovery for the current app lifetime, so disconnecting the pen keeps its settings accessible; a pen contact alone does not count as a connection report.
 
 The native worker forwards the final egui cursor to ArkUI, preserving the UI pass cursor when merging the earlier logic output. `None` hides the system pointer while egui draws its brush tip or custom tool cursor, and while a lifted pen preview is waiting for actual movement; other cursor icons map to HarmonyOS text, crosshair, hand, resize and zoom styles. Blur, page disposal and background activation restore pointer visibility, and attachment/foreground changes invalidate the worker cache. Run `node scripts/test_native_cursor.cjs <typescript module path>` for the ArkTS adapter checks. Physical mouse/pen behaviour still requires Pad acceptance. Run `node scripts/test_pen_hover_preview.cjs <typescript module path>` for the hover encoder checks.
 

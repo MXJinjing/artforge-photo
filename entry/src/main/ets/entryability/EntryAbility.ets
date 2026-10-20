@@ -10,6 +10,7 @@ import { requestWindowClose, resetCloseGuard } from '../closeGuard';
 import { WindowChrome } from '../WindowChrome';
 import { FullscreenSync } from '../Fullscreen';
 import { subWindowHost } from '../SubWindowHost';
+import { PRIVACY_ALLOWED_KEY } from '../privacy/PrivacyConsent';
 
 class SystemThemeInput {
   kind: string = 'system_theme';
@@ -36,7 +37,7 @@ export default class EntryAbility extends UIAbility {
     resetCloseGuard();
     this.noteWant(want);
     this.syncSystemTheme(this.context.config?.colorMode);
-    console.info('PhotoCraft native ability created');
+    console.info('ArtForge Photo native ability created');
   }
 
   onNewWant(want: Want): void {
@@ -59,7 +60,12 @@ export default class EntryAbility extends UIAbility {
     this.fullscreenSync?.reassert();
     // Re-read in case the colour scheme changed while we were backgrounded without a config event.
     this.syncSystemTheme(this.context.config?.colorMode);
-    native.active(true);
+    // 隐私未同意前不唤醒原生业务（与 Index 门控一致）。
+    if (AppStorage.get<boolean>(PRIVACY_ALLOWED_KEY) === true) {
+      try { native.active(true); } catch (error) {
+        console.info('Native active skipped before init');
+      }
+    }
   }
 
   onBackground(): void { restorePointerVisibility(); native.active(false); }
@@ -78,7 +84,7 @@ export default class EntryAbility extends UIAbility {
     }
     windowStage.loadContent('pages/Index', (error: BusinessError) => {
       if (error.code) {
-        console.error(`PhotoCraft page failed: ${error.code} ${error.message}`);
+        console.error(`ArtForge Photo page failed: ${error.code} ${error.message}`);
         return;
       }
       // The page does not draw into the status-bar and navigation-indicator avoid areas. Colour

@@ -8,6 +8,22 @@
     "deliveryWithInstall": true,
     "installationFree": false,
     "pages": "$profile:main_pages",
+    // ---------------------------------------------------------------------------
+    // DEBUG ONLY — 上架前本地模拟「隐私托管」系统弹窗（debug 包 + 真机）。
+    // 正式发布：在 AGC 配置隐私托管后，以下 metadata 可删除或将 hosted 改为 "0"；
+    // 生产以云端托管声明为准，勿长期保留占位 URL。
+    // 官方字段：appgallery_privacy_hosted=1 启用；privacy_statement 须为 https。
+    // ---------------------------------------------------------------------------
+    "metadata": [
+      {
+        "name": "appgallery_privacy_hosted",
+        "value": "1"
+      },
+      {
+        "name": "appgallery_privacy_link_privacy_statement",
+        "value": "https://privacy.example.com/artforge-photo-placeholder"
+      }
+    ],
     "requestPermissions": [
       {
         "name": "ohos.permission.PRINT"

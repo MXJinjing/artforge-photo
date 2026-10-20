@@ -55,6 +55,29 @@ Adobe、Photoshop 等是 Adobe Inc. 的商标。本应用为独立作品，与 A
 
 ---
 
+
+---
+
+## 隐私声明托管（华为 AppGallery）
+
+本应用走 **AGC 标准化隐私声明托管**：系统负责首启同意弹窗，应用内**不自绘**首启隐私窗（重复弹窗会被拒审）。
+
+应用侧行为（`entry/src/main/ets/privacy/PrivacyConsent.ets`）：
+
+1. 启动时 `privacyManager.getAppPrivacyResult()` 查询签署状态（0 不同意 / 1 同意完整模式 / 2 需重签）。
+2. 未同意时订阅 `usual.event.PRIVACY_STATE_CHANGED`；**同意后再**执行 `native.init` 与打印等业务。
+3. 「查看隐私声明」入口通过 `privacyManager.getAppPrivacyMgmtInfo()` 取托管链接，不写死自建 URL。
+
+### 你需要在 AGC 完成
+
+1. 开发者中心 → 应用 **艺工坊·修图**（`wang.jinjing.artforge.photo`）→ 协议服务 / 隐私声明。
+2. 新建隐私政策（HarmonyOS 应用模板）→ 生成 → 版本选择 **隐私托管**。
+3. 填写对照见 [`docs/huawei-privacy-hosting.md`](docs/huawei-privacy-hosting.md)。
+
+### Debug 模拟弹窗（未上架）
+
+`entry/src/main/module.json5` 内已有 **DEBUG ONLY** `metadata`（`appgallery_privacy_hosted=1` + 占位 https URL）。用 **debug 包 + 真机** 可模拟系统弹窗；上架并关联托管后，请删除该 metadata 或将 hosted 改为 `"0"`，正式声明以 AGC 为准。细节见同文档。
+
 ## 许可证
 
 双许可 **MIT OR Apache-2.0**，与上游 PhotoCraft / photocraft-hmos 一致。详见根目录 `LICENSE`。

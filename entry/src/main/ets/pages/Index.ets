@@ -25,6 +25,12 @@ import { subWindowHost, WindowRequest } from '../SubWindowHost';
 import { window } from '@kit.ArkUI';
 import { configureDisplayColor } from '../DisplayColor';
 import { SYSTEM_THEME_DARK, SYSTEM_THEME_LIGHT } from '../SystemTheme';
+import {
+  PRIVACY_ALLOWED_KEY,
+  awaitPrivacyConsent,
+  openHostedPrivacyStatement,
+  queryPrivacyAgreed
+} from '../privacy/PrivacyConsent';
 
 class NativeConfig {
   files: string;
@@ -101,6 +107,8 @@ struct Index {
   @StorageLink('photocraftChrome') @Watch('onChromeChanged') private chrome: string = LOADING_CHROME;
   @State private failure: string = '';
   @State private initialized: boolean = false;
+  /** 等待系统托管隐私弹窗同意；侧载无托管时立即 false。 */
+  @State private privacyWaiting: boolean = true;
   @State private dropPreview: DropPreview = new DropPreview();
   private editorOriginX: number = 0;
   private editorOriginY: number = 0;
@@ -142,13 +150,27 @@ struct Index {
     }
   }
   aboutToAppear(): void {
-    console.info('PhotoCraft native page appearing');
+    console.info('ArtForge Photo native page appearing');
     this.alive = true;
-    this.printing.start();
-    this.generation++;
     this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.RESIZE);
-    this.initializeHost(this.generation);
     applySystemBars(this.context, this.chrome);
+    // 华为隐私托管：系统弹首启同意窗；同意前不 init 原生 / 不启动打印等业务。
+    // 切勿再自绘首启隐私 CustomDialog，否则与系统弹窗重复会被拒审。
+    this.privacyWaiting = true;
+    awaitPrivacyConsent(this.context, (allowed: boolean): void => {
+      if (!this.alive) {
+        return;
+      }
+      if (!allowed) {
+        this.privacyWaiting = false;
+        return;
+      }
+      AppStorage.setOrCreate(PRIVACY_ALLOWED_KEY, true);
+      this.privacyWaiting = false;
+      this.printing.start();
+      this.generation++;
+      this.initializeHost(this.generation);
+    });
   }
   private async initializeHost(generation: number): Promise<void> {
     // 先取得文档目录再创建原生宿主，避免首次保存时目录尚未准备好。
@@ -470,6 +492,29 @@ struct Index {
         .onHover((isHover: boolean): void => { this.sendPenHoverLeave(isHover); })
         .id('photocraft-editor').focusable(true).defaultFocus(true).focusOnTouch(true)
         .onBlur(() => { this.cursor.reset(); let input = new NativeInput(); input.kind = 'blur'; native.input(JSON.stringify(input)); })
+      } else if (this.privacyWaiting) {
+        Column({ space: 16 }) {
+          Text('请先在系统弹窗中确认隐私政策').fontSize(18).fontColor('#FFFFFF')
+          Text('同意后即可进入艺工坊·修图').fontSize(14).fontColor('#CCFFFFFF')
+          Button('查看隐私声明', { type: ButtonType.Normal })
+            .fontSize(14)
+            .onClick((): void => {
+              if (!openHostedPrivacyStatement(this.context)) {
+                this.failure = '暂无托管隐私声明链接（请先在 AGC 配置隐私托管，或启用 debug metadata）';
+              }
+            })
+          // 长按标题亦可打开（无设置页时的最小入口）
+          Text('艺工坊·修图')
+            .fontSize(12)
+            .fontColor('#88FFFFFF')
+            .margin({ top: 8 })
+            .gesture(
+              LongPressGesture({ repeat: false })
+                .onAction((): void => {
+                  openHostedPrivacyStatement(this.context);
+                })
+            )
+        }
       } else {
         Text('正在准备文档目录…').fontSize(18).fontColor('#FFFFFF')
       }
@@ -483,8 +528,27 @@ struct Index {
         Column() {
           Text('艺工坊·修图 原生运行错误').fontSize(20).fontColor('#FFFFFF')
           Text(this.failure).fontSize(14).fontColor('#FFFFFF').margin({ top: 12 })
+          Button('隐私声明', { type: ButtonType.Normal })
+            .margin({ top: 8 })
+            .onClick((): void => { openHostedPrivacyStatement(this.context); })
           if (!this.initialized) {
-            Button('重试').onClick(() => { this.failure = ''; this.initializeHost(this.generation); })
+            Button('重试').onClick(() => {
+              this.failure = '';
+              let gate = queryPrivacyAgreed();
+              if (gate === 'pending') {
+                this.privacyWaiting = true;
+                awaitPrivacyConsent(this.context, (allowed: boolean): void => {
+                  if (!this.alive || !allowed) { return; }
+                  AppStorage.setOrCreate(PRIVACY_ALLOWED_KEY, true);
+                  this.privacyWaiting = false;
+                  this.printing.start();
+                  this.generation++;
+                  this.initializeHost(this.generation);
+                });
+              } else {
+                this.initializeHost(this.generation);
+              }
+            })
           } else {
             Button('关闭提示').onClick(() => { this.failure = ''; })
           }

@@ -8,7 +8,7 @@ Standard types cover PSD, JPEG, PNG, TIFF, GIF, BMP, ICO, TGA, OpenEXR,
 portable bitmap/graymap/pixmap and camera RAW. Custom UTDs register PCraft,
 PSB/PSDT, WebP, HEIF, QOI, HDR, PAM/PFM and supported camera RAW extensions.
 Each custom TypeId starts with the actual bundle name
-`io.github.storytold.photocraft.hmos.`. No API 26 directory feature is used;
+`wang.jinjing.artforge.photo.`. No API 26 directory feature is used;
 the existing minimum API 20 remains unchanged.
 
 The existing onCreate/onNewWant handlers read the granted URI into the native
@@ -24,7 +24,7 @@ Validation:
   capabilities, both native libraries and the native-only assets are verified.
 - API 20 simulator, independent workflowtest bundle: an implicit PSD viewData
   request opened the document on cold start. A PNG request with the system
-  picker flag showed PhotoCraft in “选择打开方式”; selecting it delivered the
+  picker flag showed ArtForge Photo in “选择打开方式”; selecting it delivered the
   PNG to the running editor and retained the PSD tab.
 - The original app and the real Pad were not reinstalled. The independent
   test bundle was removed after validation. Individual RAW codecs and every

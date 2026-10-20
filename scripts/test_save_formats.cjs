@@ -13,7 +13,7 @@ for (const ext of ['psd','psb','pcraft','png','jpg','webp','tif','tga','exr']) {
   assert.equal(new Set(list).size, 9);
   assert.ok(list[0].endsWith('|.' + ext));
   assert.ok(list.includes('Photoshop PSD|.psd'));
-  assert.ok(list.includes('PhotoCraft|.pcraft'));
+  assert.ok(list.includes('ArtForge|.pcraft'));
   assert.ok(!list.includes('PhotoCraft|.psd'));
 }
 assert.equal(choices('photo.jpeg')[0], 'JPEG 图像|.jpg');

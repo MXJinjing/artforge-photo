@@ -23,7 +23,7 @@ export struct LocalSaveDialog {
   build() {
     Column({ space: 16 }) {
       Text('保存 Photoshop 文件').fontSize(20).fontWeight(FontWeight.Medium)
-      Text('保存到下载目录中的 PhotoCraft 文件夹。重名时自动添加数字。').fontSize(14)
+      Text('保存到下载目录中的「艺工坊·修图」文件夹。重名时自动添加数字。').fontSize(14)
       TextInput({ text: this.name, placeholder: '文件名.psd' })
         .onChange((value: string): void => { this.name = value; this.error = ''; })
         .onSubmit(() => this.confirm())

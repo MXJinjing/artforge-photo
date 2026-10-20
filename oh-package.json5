@@ -1,6 +1,6 @@
 {
   "modelVersion": "6.0.0",
-  "description": "PhotoCraft native egui application for HarmonyOS tablet and PC",
+  "description": "ArtForge Photo (艺工坊·修图) native egui application for HarmonyOS tablet and PC",
   "license": "MIT OR Apache-2.0",
   "dependencies": {},
   "devDependencies": {}

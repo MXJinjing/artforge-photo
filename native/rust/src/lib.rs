@@ -592,7 +592,7 @@ fn worker(config: Config, rx: mpsc::Receiver<Message>) {
                             app.perf.gpu_info.selected = "gl".into();
                             if rs.adapter.get_info().device_type == wgpu::DeviceType::Cpu {
                                 return Err(
-                                    "No hardware GPU adapter; drawing stopped; restart PhotoCraft"
+                                    "No hardware GPU adapter; drawing stopped; restart ArtForge Photo"
                                         .into(),
                                 );
                             }
@@ -965,7 +965,7 @@ fn worker(config: Config, rx: mpsc::Receiver<Message>) {
                 None
             }
             Err(_) => Some(
-                "Native rendering panic; GPU drawing stopped; restart PhotoCraft to recover".into(),
+                "Native rendering panic; GPU drawing stopped; restart ArtForge Photo to recover".into(),
             ),
         };
         if let Some(reason) = failure {
@@ -992,7 +992,7 @@ fn worker(config: Config, rx: mpsc::Receiver<Message>) {
             bridge::notify(
                 0,
                 "error",
-                &format!("GPU rendering stopped: {reason}. Restart PhotoCraft to recover."),
+                &format!("GPU rendering stopped: {reason}. Restart ArtForge Photo to recover."),
                 &[],
             );
             deadline = None;

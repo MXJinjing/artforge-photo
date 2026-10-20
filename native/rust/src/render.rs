@@ -77,7 +77,7 @@ impl GpuRender {
         }))
         .map_err(|e| e.to_string())?;
         let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
-            label: Some("PhotoCraft For HarmonyOS"),
+            label: Some("ArtForge Photo"),
             required_limits: adapter.limits(),
             ..Default::default()
         }))
@@ -257,7 +257,7 @@ impl GpuRender {
                 },
             })];
             let pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("PhotoCraft UI"),
+                label: Some("ArtForge UI"),
                 color_attachments: &attachments,
                 ..Default::default()
             });
@@ -336,7 +336,7 @@ impl GpuRender {
         let mut encoder = device.create_command_encoder(&Default::default());
         {
             let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("PhotoCraft sub-window clear"),
+                label: Some("ArtForge sub-window clear"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     depth_slice: None,

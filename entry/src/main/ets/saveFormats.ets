@@ -3,7 +3,7 @@
 export function saveFormatChoices(suggested: string): string[] {
   if (suggested.toLowerCase().endsWith('.pdf')) { return ['PDF 文档|.pdf']; }
   let choices: string[] = [
-    'Photoshop PSD|.psd', 'Photoshop PSB|.psb', 'PhotoCraft|.pcraft',
+    'Photoshop PSD|.psd', 'Photoshop PSB|.psb', 'ArtForge|.pcraft',
     'PNG 图像|.png', 'JPEG 图像|.jpg', 'WebP 图像|.webp',
     'TIFF 图像|.tif', 'Targa 图像|.tga', 'OpenEXR 图像|.exr'
   ];

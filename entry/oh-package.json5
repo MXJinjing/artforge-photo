@@ -1,7 +1,7 @@
 {
   "name": "entry",
   "version": "1.0.0",
-  "description": "PhotoCraft For HarmonyOS entry module",
+  "description": "ArtForge Photo (艺工坊·修图) entry module",
   "main": "",
   "author": "",
   "license": "MIT OR Apache-2.0",

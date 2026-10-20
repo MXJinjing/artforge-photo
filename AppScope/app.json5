@@ -1,7 +1,7 @@
 {
   "app": {
-    "bundleName": "io.github.mxjinjing.photocraft",
-    "vendor": "photocraft-hmos",
+    "bundleName": "wang.jinjing.artforge.photo",
+    "vendor": "artforge",
     "versionCode": 90001,
     "versionName": "0.9.0.1",
     "icon": "$media:app_icon",

@@ -1,5 +1,8 @@
 {
   "string": [
-    { "name": "app_name", "value": "艺工坊·修图" }
+    {
+      "name": "app_name",
+      "value": "ArtForge Photo"
+    }
   ]
 }

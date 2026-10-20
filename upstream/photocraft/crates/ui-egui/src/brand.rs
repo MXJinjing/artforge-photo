@@ -6,8 +6,22 @@
 use egui::{Color32, Context, Id, Rect, TextureHandle, TextureOptions, Ui, pos2};
 use photocraft_codecs::{ChannelLayout, SampleType};
 
-/// The HarmonyOS distribution's user-facing product name.
-pub const APP_NAME: &str = if cfg!(feature = "harmonyos-ui") { "PhotoCraft For HarmonyOS" } else { "PhotoCraft" };
+/// The user-facing product name in English (HarmonyOS: ArtForge Photo; desktop: PhotoCraft).
+pub const APP_NAME: &str = if cfg!(feature = "harmonyos-ui") { "ArtForge Photo" } else { "PhotoCraft" };
+
+/// HarmonyOS Chinese product name (Simplified and Traditional UI share the registered brand).
+pub const APP_NAME_ZH: &str = "艺工坊·修图";
+
+/// Is the current UI language Chinese (Simplified or Traditional)?
+pub fn ui_is_chinese() -> bool {
+    crate::i18n::current().code().starts_with("zh")
+}
+
+/// The product name for the current UI language: Chinese locales show 艺工坊·修图 on
+/// HarmonyOS, every other language shows [`APP_NAME`].
+pub fn app_name() -> &'static str {
+    if cfg!(feature = "harmonyos-ui") && ui_is_chinese() { APP_NAME_ZH } else { APP_NAME }
+}
 
 /// 128 px: sharp at 20 pt on a 3× display, and the mipmaps keep it clean at 1×.
 #[cfg(not(feature = "harmonyos-ui"))]

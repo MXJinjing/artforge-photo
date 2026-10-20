@@ -942,7 +942,7 @@ fn translated_menu_label(lang: crate::i18n::Lang, item: &MenuItem) -> String {
         return crate::i18n::tr_id(lang, &item.id, "Quick Export as PNG").replace("PNG", fmt);
     }
     let label = crate::i18n::tr_id(lang, &item.id, &item.label);
-    if cfg!(feature = "harmonyos-ui") { label.replace("PhotoCraft", crate::brand::APP_NAME) } else { label.to_string() }
+    if cfg!(feature = "harmonyos-ui") { label.replace("PhotoCraft", crate::brand::app_name()) } else { label.to_string() }
 }
 
 /// Menu tree entry for rendering and for `ui.inspect`.

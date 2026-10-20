@@ -603,7 +603,7 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                 .session
                 .active()
                 .map(|d| format!("{}{}", d.doc.name, if d.is_dirty() { "  •" } else { "" }))
-                .unwrap_or_else(|| crate::brand::APP_NAME.into());
+                .unwrap_or_else(|| crate::brand::app_name().into());
             // The menus and the far-end controls are laid out first; the title is centred in
             // whatever room is left between them (`free`, left to right: menus then controls, or
             // controls then menus in a right-to-left UI), shortened or dropped rather than drawn
@@ -766,8 +766,8 @@ pub fn system_title_bar(app: &PhotocraftApp) -> bool {
 pub fn window_title(app: &PhotocraftApp) -> String {
     app.session
         .active()
-        .map(|d| format!("{}{} \u{2014} {}", if d.is_dirty() { "*" } else { "" }, d.doc.name, crate::brand::APP_NAME))
-        .unwrap_or_else(|| crate::brand::APP_NAME.into())
+        .map(|d| format!("{}{} \u{2014} {}", if d.is_dirty() { "*" } else { "" }, d.doc.name, crate::brand::app_name()))
+        .unwrap_or_else(|| crate::brand::app_name().into())
 }
 
 /// Keep the OS window title (and the taskbar / Alt-Tab entry) on the active file. Sends

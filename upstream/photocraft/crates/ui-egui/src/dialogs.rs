@@ -520,12 +520,9 @@ fn about_tab_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, tab: &str) {
         "contributors" => crate::credits::contributors_ui(app, ui),
         "models" => crate::credits::models_ui(ui),
         _ => {
-            let blurb = if cfg!(feature = "harmonyos-ui") {
-                "由 MXJinjing 维护的非官方鸿蒙移植版，基于上游 PhotoCraft 与 photocraft-hmos 开源项目。"
-            } else {
-                tl!("PhotoCraft — an open-source, native image editor written in Rust.")
-            };
-            ui.label(blurb);
+            if !cfg!(feature = "harmonyos-ui") {
+                ui.label(tl!("PhotoCraft — an open-source, native image editor written in Rust."));
+            }
             for line in photocraft_engine::build_info::version_lines() {
                 ui.label(line);
             }
@@ -561,7 +558,7 @@ fn display_title(d: &Dialog) -> String {
             let source = title(d);
             let shown = tl!(&source);
             if cfg!(feature = "harmonyos-ui") {
-                shown.replace("PhotoCraft", crate::brand::APP_NAME)
+                shown.replace("PhotoCraft", crate::brand::app_name())
             } else {
                 shown.to_string()
             }

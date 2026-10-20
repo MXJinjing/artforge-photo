@@ -522,30 +522,44 @@ fn about_tab_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, tab: &str) {
         _ => {
             #[cfg(feature = "harmonyos-ui")]
             {
-                // Product name as a heading, larger than body / version lines.
-                ui.label(egui::RichText::new(crate::brand::app_name()).font(crate::theme::semibold(26.0)));
-                ui.add_space(10.0);
-            }
-            if !cfg!(feature = "harmonyos-ui") {
-                ui.label(tl!("PhotoCraft — an open-source, native image editor written in Rust."));
-            }
-            for line in photocraft_engine::build_info::version_lines() {
-                ui.label(line);
-            }
-            if crate::links::SHOW_PROJECT_LINKS {
-                ui.add_space(12.0);
-                ui.vertical_centered(|ui| {
-                    crate::links::discord_button(app, ui, 220.0);
-                    ui.add_space(8.0);
-                    crate::links::link_row(app, ui);
+                // Icon + large product name, then the current HAP version centered under them.
+                ui.horizontal(|ui| {
+                    let side = 40.0;
+                    let (mark, _) = ui.allocate_exact_size(egui::vec2(side, side), egui::Sense::hover());
+                    crate::brand::paint_mark(ui, mark);
+                    ui.add_space(10.0);
+                    ui.vertical(|ui| {
+                        ui.add_space(4.0);
+                        ui.label(egui::RichText::new(crate::brand::app_name()).font(crate::theme::semibold(26.0)));
+                    });
                 });
-            }
-            #[cfg(feature = "harmonyos-ui")]
-            {
+                ui.add_space(10.0);
+                let hap = photocraft_engine::build_info::hap_version().unwrap_or("unknown (not embedded)");
+                let version = format!("HarmonyOS HAP: {hap}");
+                ui.vertical_centered(|ui| {
+                    ui.label(egui::RichText::new(version).color(crate::theme::Tokens::get(ui.ctx()).text_dim));
+                });
                 crate::links::about_oss_attribution(app, ui);
+                ui.add_space(10.0);
+                ui.weak("egui · wgpu · photocraft-engine");
             }
-            ui.add_space(10.0);
-            ui.weak("egui · wgpu · photocraft-engine");
+            #[cfg(not(feature = "harmonyos-ui"))]
+            {
+                ui.label(tl!("PhotoCraft — an open-source, native image editor written in Rust."));
+                for line in photocraft_engine::build_info::version_lines() {
+                    ui.label(line);
+                }
+                if crate::links::SHOW_PROJECT_LINKS {
+                    ui.add_space(12.0);
+                    ui.vertical_centered(|ui| {
+                        crate::links::discord_button(app, ui, 220.0);
+                        ui.add_space(8.0);
+                        crate::links::link_row(app, ui);
+                    });
+                }
+                ui.add_space(10.0);
+                ui.weak("egui · wgpu · photocraft-engine");
+            }
         }
     }
 }

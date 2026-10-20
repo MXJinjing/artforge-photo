@@ -2,7 +2,15 @@
 
 PhotoCraft's own source specific guidance is in `upstream/photocraft/AGENTS.md`; the user requested HarmonyOS native integration in this branch takes precedence for platform host work.
 
-# PhotoCraft HarmonyOS Pad agent notes
+# 艺工坊·修图 (ArtForge Photo) agent notes
+
+## 闭源声明 / Closed source
+
+- 本仓库 `MXJinjing/artforge-photo` 是**闭源、不公开**的私有仓库，用于 AppGallery 上架版「艺工坊·修图」(`wang.jinjing.artforge.photo`)。
+- 不得公开本仓库、开启公开 fork、把代码或提交推送到任何公开仓库（包括 `MXJinjing/photocraft-hmos` 与上游 `storytold/photocraft`），也不得在公开渠道粘贴本仓库独有的代码、配置或签名材料。
+- 上游 PhotoCraft 与 photocraft-hmos 的开源许可（MIT / Apache-2.0）及版权声明仍须保留；应用「关于」页保留其开源声明与 GitHub 入口。
+- 只向上游拉取（fetch / subtree pull）；需要回馈上游的通用修复，须经用户明确同意后另行在公开仓库提交。
+
 
 ## Repository layout
 
@@ -21,17 +29,6 @@ PhotoCraft's own source specific guidance is in `upstream/photocraft/AGENTS.md`;
 - For upstream changes: check out / branch from `origin/upstream-track`, fetch from the `upstream` remote, review the range, then `git subtree pull --prefix=upstream/photocraft upstream <reviewed-ref>` **without `--squash`**. Open a PR **into `upstream-track`**. Recheck HarmonyOS compatibility and the vendored dependency after each update.
 - **HarmonyOS host features and fixes** (ArkTS/native adapter, Hmos-only UI wiring, etc.) keep using topic branches and PRs **into `main`**.
 - The root `build-profile.json5` contains local signing material and is ignored. `build-profile.example.json5` is the safe template. Never commit signing certificates, private keys or passwords.
-
-## Team workflow (photocraft-hmos agents)
-
-| Role | Work dir | Branch / PR target | Notes |
-|------|----------|--------------------|-------|
-| Coding Man | `/workspace/photocraft-hmos-coding-man` | `sync/upstream-YYYYMMDD` → PR into **`upstream-track`** | Daily upstream subtree sync; x86-64 native build OK; do not merge; no device tests |
-| Prominent Coder | `/workspace/photocraft-hmos-prominent-coder` | `fix/…` or `feat/…` → PR into **`main`** | Issues/PRs/host fixes; tests when possible; do not merge |
-| Programmer | `/workspace/photocraft-hmos-programmer` | `fix/…` or `feat/…` → PR into **`main`** | Host features/fixes as assigned; tests when possible; do not merge |
-| Project Manager | `/workspace/photocraft-hmos` | Reviews and merges PRs; pushes `main` and `upstream-track` | Only agent that merges; never delete the repo; never push unreviewed code |
-
-Do not share checkouts. After cloning, add the `upstream` remote if missing. Prefer `gh` / existing GitHub login; do not force-push shared branches.
 
 ## Development loop
 

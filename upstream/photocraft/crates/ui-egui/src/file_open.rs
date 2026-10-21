@@ -127,9 +127,8 @@ impl PhotocraftApp {
         // Never use std::fs / background Path reads — those cannot open file://docs/… grants.
         if is_file_uri(path) {
             let bytes = match self.services.read_uri.as_mut() {
-                Some(read) => read(path).map_err(|e| {
+                Some(read) => read(path).inspect_err(|_| {
                     self.remove_recent(path);
-                    e
                 })?,
                 None => {
                     self.remove_recent(path);

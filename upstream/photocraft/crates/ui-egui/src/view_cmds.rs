@@ -1142,7 +1142,7 @@ fn camera_data(ui: &mut egui::Ui, f: &Map<String, Value>) {
         for (key, label) in photocraft_engine::file_cmds::CAMERA_FIELDS {
             if let Some(v) = camera.get(key).and_then(Value::as_str) {
                 ui.label(crate::i18n::tr_ctx(crate::i18n::current(), "cameraData", label));
-                ui.add(egui::Label::new(v).selectable(true));
+                ui.add(egui::Label::new(v).selectable(false));
                 ui.end_row();
             }
         }

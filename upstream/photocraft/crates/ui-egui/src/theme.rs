@@ -1213,6 +1213,10 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
         s.spacing.menu_margin = egui::Margin::same(6);
         s.spacing.window_margin = egui::Margin::same(16);
         s.spacing.icon_width = 14.0;
+        // Reader chrome is application chrome, not document content: labels, status text,
+        // menu captions and help copy must not gain a text-selection cursor or highlight.
+        // Editable TextEdit fields and the document text tools keep their own selection.
+        s.interaction.selectable_labels = false;
         s.visuals.indent_has_left_vline = false;
         s.interaction.tooltip_delay = TOOLTIP_DELAY;
         // Thin overlay scrollbars that appear on hover (Photoshop/macOS style).
@@ -1286,6 +1290,13 @@ mod tests {
         }
         assert_eq!(ctx.fonts(|f| f.definitions().clone()), definitions, "Small restores original font tweaks exactly");
         assert_eq!(ctx.zoom_factor(), 1.0);
+    }
+
+    #[test]
+    fn application_labels_are_not_selectable() {
+        let ctx = egui::Context::default();
+        apply(&ctx, ThemeKind::ArkuiProDark);
+        assert!(!ctx.global_style().interaction.selectable_labels);
     }
 
     /// The desktop app installs fonts and loads the saved UI Font Size in its first frame, while

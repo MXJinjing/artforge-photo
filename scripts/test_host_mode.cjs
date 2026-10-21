@@ -16,7 +16,8 @@ function load(name, dependencies) {
   const module = { exports: {} };
   vm.runInNewContext(result.outputText, {
     module, exports: module.exports, console: { info() {}, error() {} },
-    AppStorage: { get() {}, setOrCreate() {} },
+    // The privacy gate wakes native work only after consent; these cases assume it.
+    AppStorage: { get: key => (key === 'photocraftPrivacyAllowed' ? true : undefined), setOrCreate() {} },
     require: name => { assert.ok(name in dependencies, `unexpected dependency ${name}`); return dependencies[name]; }
   }, { filename });
   return module.exports;
@@ -31,9 +32,11 @@ function load(name, dependencies) {
       '../WindowChrome': { WindowChrome: class { start() {} stop() {} refresh() {} } },
       '../SystemTheme': { publishSystemTheme() {}, systemThemeFromColorMode: () => 'dark' },
       '../Fullscreen': { FullscreenSync: class { start() {} stop() {} reassert() {} } },
+      '../SubWindowHost': { subWindowHost: { attach() {}, closeAll() {} } },
       '../input/NativeCursorAdapter': { restorePointerVisibility() {} },
       '../openInbox': { acceptOpenWant: want => calls.push(['open', want.uri]) },
       '../closeGuard': { resetCloseGuard() {}, requestWindowClose() {} },
+      '../privacy/PrivacyConsent': { PRIVACY_ALLOWED_KEY: 'photocraftPrivacyAllowed' },
       '../SubWindowHost': { subWindowHost: {
         attach: (stage, forward) => calls.push(['attach', stage, typeof forward]),
         closeAll: () => calls.push(['closeAll']),

@@ -57,9 +57,11 @@ const { default: EntryAbility } = load('entryability/EntryAbility', {
   '../SystemTheme': systemTheme,
   '../WindowChrome': { WindowChrome: class { start() {} stop() {} refresh() {} } },
   '../Fullscreen': { FullscreenSync: class { start() {} stop() {} reassert() {} } },
+  '../SubWindowHost': { subWindowHost: { attach() {}, closeAll() {} } },
       '../input/NativeCursorAdapter': { restorePointerVisibility() {} },
       '../openInbox': { acceptOpenWant() {} }, '../closeGuard': { resetCloseGuard() {}, requestWindowClose() {} },
-      '../SubWindowHost': { subWindowHost: { attach() {}, closeAll() {} } }
+      '../SubWindowHost': { subWindowHost: { attach() {}, closeAll() {} } },
+      '../privacy/PrivacyConsent': { PRIVACY_ALLOWED_KEY: 'photocraftPrivacyAllowed' }
 });
 async function main() {
   const app = new EntryAbility();

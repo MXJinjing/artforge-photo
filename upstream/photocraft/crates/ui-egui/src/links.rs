@@ -172,12 +172,31 @@ mod tests {
         }
     }
 
+    #[test]
+    fn help_restore_submenu_restores_builtin_swatches() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        let ids: Vec<String> =
+            crate::menus::menu_items(&app).into_iter().filter(|i| i.path == ["Help", "Restore Defaults"]).map(|i| i.id).collect();
+        assert_eq!(ids, [
+            "help.restore.brushes",
+            "help.restore.swatches",
+            "help.restore.patterns",
+            "help.restore.gradients",
+            "help.restore.styles",
+            "help.restore.shapes",
+            "help.restore.toolPresets"
+        ]);
+        app.session.execute("swatches.delete", json!({"swatch": "Black"})).unwrap();
+        crate::menus::invoke(&mut app, &egui::Context::default(), "help.restore.swatches", json!({})).unwrap();
+        assert!(app.session.presets.swatches.iter().any(|g| g.items.iter().any(|s| s.name == "Black")));
+    }
+
     #[cfg(not(feature = "harmonyos-ui"))]
     #[test]
     fn help_menu_lists_links_then_separator_then_system_info_and_about() {
         let app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
         let help: Vec<String> = crate::menus::menu_items(&app).into_iter().filter(|i| i.path == ["Help"]).map(|i| i.id).collect();
-        assert_eq!(help, ["help.discord", "help.website", "help.artcraftWebsite", "help.github", "help.reportIssue", "---", "help.systemInfo", "help.about"]);
+        assert_eq!(help, ["help.discord", "help.website", "help.artcraftWebsite", "help.github", "help.reportIssue", "---", "help.systemInfo", "help.stylusDebug", "help.about"]);
         for (id, _) in COMMANDS {
             assert!(crate::menus::is_live(id) && crate::menus::is_enabled(&app, id), "{id}");
         }
@@ -188,8 +207,8 @@ mod tests {
     fn harmonyos_help_menu_lists_privacy_link_issue_tracker_and_local_information() {
         let app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
         let help: Vec<String> = crate::menus::menu_items(&app).into_iter().filter(|i| i.path == ["Help"]).map(|i| i.id).collect();
-        assert_eq!(help, ["help.privacyPolicy", "help.reportIssue", "---", "help.systemInfo", "help.about"]);
-        let links: Vec<&str> = crate::menus::UI_COMMANDS.iter().filter(|c| url_for(c.0).is_some()).map(|c| c.0).collect();
+        assert_eq!(help, ["help.privacyPolicy", "help.reportIssue", "---", "help.systemInfo", "help.stylusDebug", "help.about"]);
+        let links: Vec<&str> = COMMANDS.iter().map(|c| c.0).collect();
         assert_eq!(links, ["help.privacyPolicy", "help.reportIssue"]);
         assert_eq!(url_for("help.privacyPolicy"), Some(PRIVACY_STATEMENT));
         assert_eq!(url_for("help.reportIssue"), Some(ISSUES));

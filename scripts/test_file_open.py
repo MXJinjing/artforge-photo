@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Validate the actual file associations and catch broken matching metadata."""
 import copy
-import json
 import unittest
 from pathlib import Path
 
+from json5_config import load as load_json5
 from verify_native import verify_file_open
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -12,9 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class FileOpenTests(unittest.TestCase):
     def setUp(self):
-        self.config = json.loads((ROOT / 'entry/src/main/module.json5').read_text())
-        self.config['app'] = json.loads((ROOT / 'AppScope/app.json5').read_text())['app']
-        self.utds = json.loads((ROOT / 'entry/src/main/resources/rawfile/arkdata/utd/utd.json5').read_text())
+        self.config = load_json5(ROOT / 'entry/src/main/module.json5')
+        self.config['app'] = load_json5(ROOT / 'AppScope/app.json5')['app']
+        self.utds = load_json5(ROOT / 'entry/src/main/resources/rawfile/arkdata/utd/utd.json5')
 
     def test_actual_declarations(self):
         verify_file_open(self.config, self.utds)

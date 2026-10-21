@@ -24,7 +24,7 @@ import { isFiniteHoverPoint, penHoverLeaveMessage, penHoverMoveMessage } from '.
 import { moveWindow, toggleWindowMaximize } from '../WindowChrome';
 import { fullscreenAvailable, fullscreenOn, reportFullscreen, requestFullscreen } from '../Fullscreen';
 import { subWindowHost, WindowRequest } from '../SubWindowHost';
-import { window } from '@kit.ArkUI';
+import { display, window } from '@kit.ArkUI';
 import { configureDisplayColor } from '../DisplayColor';
 import { SYSTEM_THEME_DARK, SYSTEM_THEME_LIGHT } from '../SystemTheme';
 import {
@@ -35,6 +35,7 @@ import {
   openHostedPrivacyStatement,
   queryPrivacyAgreed
 } from '../privacy/PrivacyConsent';
+import { pickFolder, sandboxDocumentDirectory, ensureOutputSubdirs } from '../folderPicker';
 
 class NativeConfig {
   files: string;
@@ -70,6 +71,12 @@ class NativeInput {
   alt: boolean = false;
   dx: number = 0;
   dy: number = 0;
+}
+
+class DisplayRotationInput {
+  kind: string = 'display_rotation';
+  rotation: number = 0;
+  landscape: boolean = false;
 }
 
 interface OpenSourceActions {
@@ -113,6 +120,10 @@ struct Index {
   @State private initialized: boolean = false;
   /** 等待系统托管隐私弹窗同意；侧载无托管时立即 false。 */
   @State private privacyWaiting: boolean = true;
+  @State private startupVisible: boolean = true;
+  @State private startupOpacity: number = 1;
+  @State private startupScale: number = 1;
+  private startupFading: boolean = false;
   @State private dropPreview: DropPreview = new DropPreview();
   private editorOriginX: number = 0;
   private editorOriginY: number = 0;
@@ -122,6 +133,7 @@ struct Index {
   private generation: number = 0;
   // 页面离开或重新初始化后，旧的异步结果不能继续操作当前页面。
   private alive: boolean = false;
+  private displayRotationListening: boolean = false;
   private documents: LocalDocuments | undefined = undefined;
   private documentUri: string = '';
   // Ordinary Save retains its authorized URI; Save As consumes its URI once.
@@ -137,6 +149,7 @@ struct Index {
   private clipboard: NativeClipboardAdapter = new NativeClipboardAdapter(this.context);
   private printing: NativePrintAdapter = new NativePrintAdapter(this.context,
     (message: string): void => { if (this.alive) { this.failure = message; } });
+  private readonly onDisplayChange = (_id: number): void => { this.sendDisplayRotation(); };
   private drainOpens(): void {
     for (let file of takeOpens()) {
       let name = file.name;
@@ -163,6 +176,10 @@ struct Index {
   aboutToAppear(): void {
     console.info('ArtForge Photo native page appearing');
     this.alive = true;
+    this.startupVisible = true;
+    this.startupOpacity = 1;
+    this.startupScale = 1;
+    this.startupFading = false;
     this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.RESIZE);
     applySystemBars(this.context, this.chrome);
     // 华为隐私托管：系统弹首启同意窗；同意前不 init 原生 / 不启动打印等业务。
@@ -186,11 +203,23 @@ struct Index {
   private async initializeHost(generation: number): Promise<void> {
     // 先取得文档目录再创建原生宿主，避免首次保存时目录尚未准备好。
     try {
-      let uri = await applicationDocumentUri(this.context);
-      let documents = new fileUri.FileUri(uri).path;
-      if (documents.length === 0) throw new Error('Application document directory has no path');
+      let uri: string = '';
+      let documents: string = '';
+      try {
+        uri = await applicationDocumentUri(this.context);
+        documents = new fileUri.FileUri(uri).path;
+        if (documents.length === 0) throw new Error('Application document directory has no path');
+      } catch (error) {
+        // DOWNLOAD authorization failed: documents stay in the sandbox (filesDir/Documents)
+        // and the save picker opens at its own default location.
+        console.error(`PhotoCraft DOWNLOAD directory unavailable: ${(error as Error).message}`);
+        uri = '';
+        documents = sandboxDocumentDirectory(this.context);
+      }
       if (!this.alive || generation !== this.generation) { return; }
       this.documents = new LocalDocuments(documents, this.context.filesDir);
+      // ~/Downloads/<bundle>/{processed,batch,exports,...} for batch/export defaults.
+      ensureOutputSubdirs(documents);
       this.documentUri = uri;
       let scale: number = this.getUIContext().vp2px(1);
       const displayP3 = await configureDisplayColor(this.context);
@@ -210,6 +239,7 @@ struct Index {
       setCloseRequest((): void => { native.close(); });
       this.drainOpens();
       this.stylus.start();
+      this.startDisplayRotation();
     } catch (error) {
       if (this.alive && generation === this.generation) { this.failure = (error as Error).message; }
     }
@@ -223,12 +253,46 @@ struct Index {
     this.initialized = false;
     this.saveTargets.clear();
     this.stylus.stop();
+    this.stopDisplayRotation();
     this.ime.stop();
     this.cursor.reset();
     subWindowHost.closeAll();
     setOpenListener(null);
     setCloseRequest(null);
     native.active(false);
+  }
+  private sendDisplayRotation(): void {
+    if (!this.initialized) { return; }
+    try {
+      const current = display.getDefaultDisplaySync();
+      const rotation = current.rotation;
+      if (!Number.isInteger(rotation) || rotation < 0 || rotation > 3) { return; }
+      let input = new DisplayRotationInput();
+      input.rotation = rotation;
+      input.landscape = current.width > current.height;
+      native.input(JSON.stringify(input));
+    } catch (error) {
+      console.info(`Display rotation unavailable: ${(error as Error).message}`);
+    }
+  }
+  private startDisplayRotation(): void {
+    if (this.displayRotationListening) { return; }
+    try {
+      display.on('change', this.onDisplayChange);
+      this.displayRotationListening = true;
+      this.sendDisplayRotation();
+    } catch (error) {
+      console.info(`Display rotation listener unavailable: ${(error as Error).message}`);
+    }
+  }
+  private stopDisplayRotation(): void {
+    if (!this.displayRotationListening) { return; }
+    this.displayRotationListening = false;
+    try {
+      display.off('change', this.onDisplayChange);
+    } catch (error) {
+      console.info(`Display rotation listener cleanup: ${(error as Error).message}`);
+    }
   }
   private onTitlebarChanged(): void {
     // ArkUI 的布局值使用 vp；桥接协议统一传物理像素，由 Rust 按 egui 缩放换算。
@@ -254,6 +318,7 @@ struct Index {
     if (!this.alive) { if (id > 0) native.reply(id, false, 'cancelled', new ArrayBuffer(0)); return; }
     if (request.kind === 'error') { this.failure = request.text; }
     else if (request.kind === 'ready') { this.failure = ''; this.onTitlebarChanged(); }
+    else if (request.kind === 'first_frame') { this.revealEditor(); }
     else if (request.kind === 'window_move' || request.kind === 'window_maximize') {
       window.getLastWindow(this.context).then((win: window.Window) => {
         return request.kind === 'window_move' ? moveWindow(win) : toggleWindowMaximize(win);
@@ -280,8 +345,11 @@ struct Index {
     }
     else if (request.kind === 'open') { this.openFile(id); }
     else if (request.kind === 'open_uri') { this.openPersistedUri(id, request.text); }
+    else if (request.kind === 'import') { this.importFile(id); }
+    else if (request.kind === 'folder') { this.selectFolder(id, request.text === 'output'); }
     else if (request.kind === 'save_default') { this.selectSave(id, request.text, true); }
     else if (request.kind === 'save_select') { this.selectSave(id, request.text); }
+    else if (request.kind === 'export_write') { this.writeExport(id, request.text, data); }
     else if (request.kind === 'write') { this.writeFile(id, request.text, data); }
     else if (request.kind === 'print') { this.printFile(id, request.text, data); }
     else if (request.kind === 'clipboard_set_image' || request.kind === 'clipboard_get_image' ||
@@ -370,6 +438,31 @@ struct Index {
       this.restoreEditorFocus();
     }
   }
+  private async importFile(id: number): Promise<void> {
+    // File › Import / presets / scripts / path_pick: go straight to the file manager.
+    // Document Open keeps chooseOpenSource (files vs gallery) via openFile.
+    this.ime.stop(); this.cursor.reset();
+    let generation = this.generation;
+    try {
+      let uris = await this.selectDocumentUris();
+      if (!this.alive || generation !== this.generation || uris.length === 0) {
+        native.reply(id, false, 'cancelled', new ArrayBuffer(0)); return;
+      }
+      let file = await fileIo.open(uris[0], fileIo.OpenMode.READ_ONLY);
+      try {
+        if (!this.alive || generation !== this.generation) {
+          native.reply(id, false, 'cancelled', new ArrayBuffer(0)); return;
+        }
+        let opened = new fileUri.FileUri(uris[0]);
+        native.replyFile(id, this.documents?.owns(opened.path) ? opened.path : opened.name, file.fd);
+      } finally { await fileIo.close(file); }
+    } catch (error) {
+      let failure = error as Error;
+      native.reply(id, false, failure.message, new ArrayBuffer(0));
+    } finally {
+      this.restoreEditorFocus();
+    }
+  }
   private chooseOpenSource(): Promise<string> {
     return new Promise<string>((resolve: (value: string) => void, reject: (reason: Error) => void) => {
       const prompt = this.getUIContext().getPromptAction();
@@ -441,6 +534,25 @@ struct Index {
       native.reply(id, false, failure.message, new ArrayBuffer(0));
     }
   }
+  private async selectFolder(id: number, output: boolean): Promise<void> {
+    // Native path fields (batch input/output, plug-in folder, export folders) ask for a folder.
+    // 2in1: DocumentSelectMode.FOLDER. Tablet: input stages multi-selected files; output uses
+    // the DOWNLOAD document directory (never a single-file picker for folder fields).
+    this.ime.stop(); this.cursor.reset();
+    let generation = this.generation;
+    try {
+      let path = await pickFolder(this.context, output, this.documents?.root() ?? '', '');
+      if (!this.alive || generation !== this.generation || path.length === 0) {
+        native.reply(id, false, 'cancelled', new ArrayBuffer(0)); return;
+      }
+      if (output) { this.documents?.grantOutput(path); }
+      native.reply(id, true, path, new ArrayBuffer(0));
+    } catch (error) {
+      native.reply(id, false, (error as Error).message, new ArrayBuffer(0));
+    } finally {
+      this.restoreEditorFocus();
+    }
+  }
   private async selectSave(id: number, suggested: string, ordinary: boolean = false): Promise<void> {
     this.ime.stop(); this.cursor.reset();
     let generation = this.generation;
@@ -466,6 +578,15 @@ struct Index {
       native.reply(id, false, failure.message, new ArrayBuffer(0));
     } finally {
       this.restoreEditorFocus();
+    }
+  }
+  private async writeExport(id: number, path: string, bytes: ArrayBuffer): Promise<void> {
+    try {
+      if (this.documents === undefined) { throw new Error('Document directory unavailable'); }
+      await this.documents.writeOutput(path, bytes);
+      native.reply(id, true, path, new ArrayBuffer(0));
+    } catch (error) {
+      native.reply(id, false, (error as Error).message, new ArrayBuffer(0));
     }
   }
   private async writeFile(id: number, name: string, bytes: ArrayBuffer): Promise<void> {
@@ -560,6 +681,25 @@ struct Index {
     if (isHover || !this.alive || !this.initialized) { return; }
     native.input(penHoverLeaveMessage());
   }
+  private revealEditor(): void {
+    if (!this.startupVisible || this.startupFading) { return; }
+    this.startupFading = true;
+    const generation = this.generation;
+    // init/onLoad/ready all precede presentation. Fade only after a real root frame.
+    this.getUIContext().animateTo({
+      duration: 320,
+      curve: Curve.EaseOut,
+      onFinish: (): void => {
+        if (!this.alive || generation !== this.generation) { return; }
+        this.startupVisible = false;
+        this.restoreEditorFocus();
+        console.info('PhotoCraft startup reveal complete');
+      }
+    }, (): void => {
+      this.startupOpacity = 0;
+      this.startupScale = 0.98;
+    });
+  }
   build() {
     Stack() {
       if (this.initialized) {
@@ -607,6 +747,24 @@ struct Index {
         }
       } else {
         Text('正在准备文档目录…').fontSize(18).fontColor('#FFFFFF')
+      }
+      // 隐私同意前不盖启动遮罩，否则待确认提示会被挡住。
+      if (this.startupVisible && !this.privacyWaiting) {
+        Column() {
+          Column({ space: 18 }) {
+            Image($r('app.media.app_icon')).width(76).height(76).borderRadius(18)
+            Text('艺工坊·修图').fontSize(30).fontWeight(FontWeight.Medium).fontColor('#F4F4F5')
+            Row({ space: 10 }) {
+              LoadingProgress().width(18).height(18).color('#A5BFFF')
+              Text(this.initialized ? '正在启动编辑器…' : '正在准备文档目录…')
+                .fontSize(14).fontColor('#B8BAC2')
+            }
+          }.scale({ x: this.startupScale, y: this.startupScale })
+        }
+        .width('100%').height('100%').justifyContent(FlexAlign.Center)
+        .backgroundColor(LOADING_CHROME).opacity(this.startupOpacity)
+        .hitTestBehavior(HitTestMode.Block)
+        .accessibilityText('艺工坊·修图 正在启动')
       }
       if (this.dropPreview.visible && this.dropPreview.mode === 'place') {
         Row() {}.width(this.dropPreview.width).height(this.dropPreview.height)

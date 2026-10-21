@@ -62,6 +62,33 @@ impl Palette {
     }
 }
 
+/// With no document open, double-clicking the blank workspace around the Home panel shows
+/// File › Open (as in Photoshop); the panel's own widgets keep their clicks.
+pub(crate) fn open_on_blank_double_click(app: &mut PhotocraftApp, ui: &Ui, area: Rect) {
+    if !app.session.documents().is_empty() {
+        return;
+    }
+    let panel = layout(area).panel;
+    let mut opened = false;
+    for (i, blank) in blank_around(area, panel).into_iter().enumerate() {
+        if blank.is_positive() && !opened {
+            opened = ui.interact(blank, ui.id().with(("artforge-home-blank", i)), Sense::click()).double_clicked();
+        }
+    }
+    if opened {
+        let _ = app.open_dialog_file();
+    }
+}
+
+fn blank_around(area: Rect, panel: Rect) -> [Rect; 4] {
+    [
+        Rect::from_min_max(area.min, pos2(area.max.x, panel.min.y)),
+        Rect::from_min_max(pos2(area.min.x, panel.max.y), area.max),
+        Rect::from_min_max(pos2(area.min.x, panel.min.y), pos2(panel.min.x, panel.max.y)),
+        Rect::from_min_max(pos2(panel.max.x, panel.min.y), pos2(area.max.x, panel.max.y)),
+    ]
+}
+
 pub(crate) fn start_screen(app: &mut PhotocraftApp, ui: &mut Ui) {
     let area = ui.available_rect_before_wrap();
     if !area.is_finite() || !area.is_positive() {
@@ -119,7 +146,9 @@ fn paint_panel(ui: &Ui, rect: Rect, p: &Palette) {
 }
 
 fn paint_content(app: &mut PhotocraftApp, ui: &mut Ui, layout: HomeLayout, p: &Palette) {
-    let recent: Vec<String> = if cfg!(target_arch = "wasm32") { Vec::new() } else { app.ui.recent_files.iter().take(HOME_RECENT_LIMIT).cloned().collect() };
+    let show_recent = app.session.prefs().interface.show_home_recent_files;
+    let recent: Vec<String> =
+        if cfg!(target_arch = "wasm32") || !show_recent { Vec::new() } else { app.ui.recent_files.iter().take(HOME_RECENT_LIMIT).cloned().collect() };
     ui.scope_builder(egui::UiBuilder::new().max_rect(layout.content).layout(egui::Layout::top_down(Align::Min)), |ui| {
         ui.set_width(layout.content.width());
         ui.spacing_mut().item_spacing = vec2(0.0, 0.0);

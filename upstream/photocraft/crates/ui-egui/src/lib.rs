@@ -24,6 +24,8 @@ pub mod analysis_ui;
 pub mod anchor_tools;
 pub mod artboard_tool;
 pub mod artboard_ui;
+#[cfg(feature = "harmonyos-ui")]
+mod artforge_home;
 pub(crate) mod background_redraw;
 mod blend_keys;
 pub(crate) mod blend_preview;

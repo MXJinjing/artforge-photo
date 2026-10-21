@@ -2654,8 +2654,14 @@ pub fn mode_label(doc: &Document) -> &'static str {
 }
 
 fn start_screen(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
-    let t = crate::theme::Tokens::get(ui.ctx());
     let area = ui.available_rect_before_wrap();
+    let t = crate::theme::Tokens::get(ui.ctx());
+    #[cfg(feature = "harmonyos-ui")]
+    if crate::artforge_home::use_custom_home(t.kind) {
+        paint_dots(ui, area, app.session.prefs().interface.show_canvas_dots);
+        crate::artforge_home::start_screen(app, ui);
+        return;
+    }
     paint_dots(ui, area, app.session.prefs().interface.show_canvas_dots);
     // File › Open Recent, newest first (on the web there are no paths to reopen).
     let recent: Vec<String> = if cfg!(target_arch = "wasm32") { Vec::new() } else { app.ui.recent_files.iter().take(HOME_RECENT).cloned().collect() };

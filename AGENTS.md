@@ -6,7 +6,7 @@ PhotoCraft's own source specific guidance is in `upstream/photocraft/AGENTS.md`;
 
 ## 闭源声明 / Closed source
 
-- 本仓库 `MXJinjing/artforge-photo` 是**闭源、不公开**的私有仓库，用于 AppGallery 上架版「艺工坊·修图」(`wang.jinjing.artforge.photo`)。
+- 本仓库 `MXJinjing/artforge-photo` 是**闭源、不公开**的私有仓库，用于 AppGallery 上架版「艺工坊·修图」(`io.github.mxjinjing.artforge.photo`)。
 - 不得公开本仓库、开启公开 fork、把代码或提交推送到任何公开仓库（包括 `MXJinjing/photocraft-hmos` 与上游 `storytold/photocraft`），也不得在公开渠道粘贴本仓库独有的代码、配置或签名材料。
 - 上游 PhotoCraft 与 photocraft-hmos 的开源许可（MIT / Apache-2.0）及版权声明仍须保留；应用「关于」页保留其开源声明与 GitHub 入口。
 - 只向上游拉取（fetch / subtree pull）；需要回馈上游的通用修复，须经用户明确同意后另行在公开仓库提交。

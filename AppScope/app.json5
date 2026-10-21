@@ -1,6 +1,6 @@
 {
   "app": {
-    "bundleName": "wang.jinjing.artforge.photo",
+    "bundleName": "io.github.mxjinjing.artforge.photo",
     "vendor": "artforge",
     "versionCode": 90001,
     "versionName": "0.9.0.1",

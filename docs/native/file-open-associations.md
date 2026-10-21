@@ -8,7 +8,7 @@ Standard types cover PSD, JPEG, PNG, TIFF, GIF, BMP, ICO, TGA, OpenEXR,
 portable bitmap/graymap/pixmap and camera RAW. Custom UTDs register PCraft,
 PSB/PSDT, WebP, HEIF, QOI, HDR, PAM/PFM and supported camera RAW extensions.
 Each custom TypeId starts with the actual bundle name
-`wang.jinjing.artforge.photo.`. No API 26 directory feature is used;
+`io.github.mxjinjing.artforge.photo.`. No API 26 directory feature is used;
 the existing minimum API 20 remains unchanged.
 
 The existing onCreate/onNewWant handlers read the granted URI into the native

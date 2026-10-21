@@ -1,7 +1,7 @@
 {
   "UniformDataTypeDeclarations": [
     {
-      "TypeId": "wang.jinjing.artforge.photo.pcraft",
+      "TypeId": "io.github.mxjinjing.artforge.photo.pcraft",
       "BelongingToTypes": [
         "general.image"
       ],
@@ -15,7 +15,7 @@
       "ReferenceURL": ""
     },
     {
-      "TypeId": "wang.jinjing.artforge.photo.webp",
+      "TypeId": "io.github.mxjinjing.artforge.photo.webp",
       "BelongingToTypes": [
         "general.image"
       ],
@@ -29,7 +29,7 @@
       "ReferenceURL": ""
     },
     {
-      "TypeId": "wang.jinjing.artforge.photo.heif",
+      "TypeId": "io.github.mxjinjing.artforge.photo.heif",
       "BelongingToTypes": [
         "general.image"
       ],
@@ -46,7 +46,7 @@
       "ReferenceURL": ""
     },
     {
-      "TypeId": "wang.jinjing.artforge.photo.psb",
+      "TypeId": "io.github.mxjinjing.artforge.photo.psb",
       "BelongingToTypes": [
         "com.adobe.photoshop-image"
       ],
@@ -62,7 +62,7 @@
       "ReferenceURL": ""
     },
     {
-      "TypeId": "wang.jinjing.artforge.photo.qoi",
+      "TypeId": "io.github.mxjinjing.artforge.photo.qoi",
       "BelongingToTypes": [
         "general.image"
       ],
@@ -76,7 +76,7 @@
       "ReferenceURL": ""
     },
     {
-      "TypeId": "wang.jinjing.artforge.photo.hdr",
+      "TypeId": "io.github.mxjinjing.artforge.photo.hdr",
       "BelongingToTypes": [
         "general.image"
       ],
@@ -90,7 +90,7 @@
       "ReferenceURL": ""
     },
     {
-      "TypeId": "wang.jinjing.artforge.photo.portable-image",
+      "TypeId": "io.github.mxjinjing.artforge.photo.portable-image",
       "BelongingToTypes": [
         "general.image"
       ],
@@ -106,7 +106,7 @@
       "ReferenceURL": ""
     },
     {
-      "TypeId": "wang.jinjing.artforge.photo.camera-raw",
+      "TypeId": "io.github.mxjinjing.artforge.photo.camera-raw",
       "BelongingToTypes": [
         "general.raw-image"
       ],

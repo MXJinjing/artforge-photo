@@ -9,7 +9,7 @@
 - **开发者**：MXJinjing / wang.jinjing
 - **应用中文名**：艺工坊·修图
 - **应用英文名**：ArtForge Photo
-- **应用包名（bundleName）**：`wang.jinjing.artforge.photo`
+- **应用包名（bundleName）**：`io.github.mxjinjing.artforge.photo`
 - **适用范围**：本政策仅适用于上述 HarmonyOS 应用（当前分发设备类型为平板、PC/2in1）
 
 本应用面向个人用户提供**本地、离线为主**的图片编辑能力。开发者未设立公司主体；本政策中的「我们」均指上述个人开发者。
@@ -111,7 +111,7 @@
 
 - **联系邮箱**：`请替换为你的联系邮箱`（建议使用长期有效的个人邮箱）  
 - **开发者**：MXJinjing / wang.jinjing（个人）  
-- **应用包名**：`wang.jinjing.artforge.photo`
+- **应用包名**：`io.github.mxjinjing.artforge.photo`
 
 我们将在收到请求后尽快核实并回复（通常不超过 15 个工作日，法律法规另有规定的除外）。
 

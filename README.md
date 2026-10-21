@@ -14,7 +14,7 @@
 |---|---|
 | 中文名 | 艺工坊·修图 |
 | 英文名 | ArtForge Photo |
-| bundleName | `wang.jinjing.artforge.photo` |
+| bundleName | `io.github.mxjinjing.artforge.photo` |
 | 许可 | MIT OR Apache-2.0（延续上游双许可） |
 
 > [!NOTE]
@@ -81,7 +81,7 @@ Adobe、Photoshop 等是 Adobe Inc. 的商标。本应用为独立作品，与 A
 
 ### 你需要在 AGC 完成
 
-1. 开发者中心 → 应用 **艺工坊·修图**（`wang.jinjing.artforge.photo`）→ 协议服务 / 隐私声明。
+1. 开发者中心 → 应用 **艺工坊·修图**（`io.github.mxjinjing.artforge.photo`）→ 协议服务 / 隐私声明。
 2. 新建隐私政策（HarmonyOS 应用模板）→ 生成 → 版本选择 **隐私托管**。
 3. 填写对照见 [`docs/huawei-privacy-hosting.md`](docs/huawei-privacy-hosting.md)。
 

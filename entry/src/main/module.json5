@@ -63,14 +63,14 @@
               {"scheme": "file", "type": "com.truevision.tga-image", "linkFeature": "FileOpen"},
               {"scheme": "file", "type": "com.ilm.openexr-image", "linkFeature": "FileOpen"},
               {"scheme": "file", "type": "com.adobe.photoshop-image", "linkFeature": "FileOpen"},
-              {"scheme": "file", "type": "wang.jinjing.artforge.photo.pcraft", "linkFeature": "FileOpen"},
-              {"scheme": "file", "type": "wang.jinjing.artforge.photo.webp", "linkFeature": "FileOpen"},
-              {"scheme": "file", "type": "wang.jinjing.artforge.photo.heif", "linkFeature": "FileOpen"},
-              {"scheme": "file", "type": "wang.jinjing.artforge.photo.psb", "linkFeature": "FileOpen"},
-              {"scheme": "file", "type": "wang.jinjing.artforge.photo.qoi", "linkFeature": "FileOpen"},
-              {"scheme": "file", "type": "wang.jinjing.artforge.photo.hdr", "linkFeature": "FileOpen"},
-              {"scheme": "file", "type": "wang.jinjing.artforge.photo.portable-image", "linkFeature": "FileOpen"},
-              {"scheme": "file", "type": "wang.jinjing.artforge.photo.camera-raw", "linkFeature": "FileOpen"}
+              {"scheme": "file", "type": "io.github.mxjinjing.artforge.photo.pcraft", "linkFeature": "FileOpen"},
+              {"scheme": "file", "type": "io.github.mxjinjing.artforge.photo.webp", "linkFeature": "FileOpen"},
+              {"scheme": "file", "type": "io.github.mxjinjing.artforge.photo.heif", "linkFeature": "FileOpen"},
+              {"scheme": "file", "type": "io.github.mxjinjing.artforge.photo.psb", "linkFeature": "FileOpen"},
+              {"scheme": "file", "type": "io.github.mxjinjing.artforge.photo.qoi", "linkFeature": "FileOpen"},
+              {"scheme": "file", "type": "io.github.mxjinjing.artforge.photo.hdr", "linkFeature": "FileOpen"},
+              {"scheme": "file", "type": "io.github.mxjinjing.artforge.photo.portable-image", "linkFeature": "FileOpen"},
+              {"scheme": "file", "type": "io.github.mxjinjing.artforge.photo.camera-raw", "linkFeature": "FileOpen"}
             ]
           }
         ]

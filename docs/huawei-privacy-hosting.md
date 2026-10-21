@@ -19,7 +19,7 @@
 
 ## 控制台操作（你需要登录开发者账号完成）
 
-1. 打开 [HarmonyOS 开发者中心 / AppGallery Connect](https://developer.huawei.com/) → 应用管理 → 选中 **艺工坊·修图**（包名 `wang.jinjing.artforge.photo`）。
+1. 打开 [HarmonyOS 开发者中心 / AppGallery Connect](https://developer.huawei.com/) → 应用管理 → 选中 **艺工坊·修图**（包名 `io.github.mxjinjing.artforge.photo`）。
 2. 进入 **应用上架 → 协议服务**（或版本信息中的「隐私声明」区域）。
 3. **新建协议** → 类型选 **隐私政策** → 模板选 **HarmonyOS 应用** → 默认语言 **简体中文**。
 4. 按下方「模板填写对照」如实勾选与填写。

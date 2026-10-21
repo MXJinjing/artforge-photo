@@ -13,6 +13,8 @@ mod bridge;
 #[cfg(any(target_env = "ohos", test))]
 mod chrome;
 #[cfg(any(target_env = "ohos", test))]
+mod clipboard;
+#[cfg(any(target_env = "ohos", test))]
 mod cursor;
 #[cfg(any(target_env = "ohos", test))]
 mod display_color;
@@ -180,6 +182,8 @@ fn services(
             photocraft_format::atomic_write(&save, text.as_bytes()).map_err(|e| e.to_string())
         })),
         system_theme: Some(appearance.service()),
+        clipboard_set_image: Some(Box::new(clipboard::set_image)),
+        clipboard_get_image: Some(Box::new(clipboard::get_image)),
         ..Default::default()
     }
 }
@@ -912,6 +916,14 @@ fn worker(config: Config, rx: mpsc::Receiver<Message>) {
                         if let Some(v) = output.viewport_output.get(&egui::ViewportId::ROOT) {
                             commands.extend(v.commands.clone());
                         }
+                        if commands
+                            .iter()
+                            .any(|command| matches!(command, egui::ViewportCommand::RequestPaste))
+                            && let Some(text) = clipboard::get_text()
+                        {
+                            events.push(egui::Event::Paste(text));
+                            deadline = Some(Instant::now());
+                        }
                         match close_action(validating_close, &commands) {
                             CloseAction::Confirm => bridge::notify(0, "close", "", &[]),
                             CloseAction::Request => {
@@ -924,8 +936,30 @@ fn worker(config: Config, rx: mpsc::Receiver<Message>) {
                             CloseAction::Cancel | CloseAction::None => {}
                         }
                         for command in &output.platform_output.commands {
-                            if let egui::OutputCommand::OpenUrl(url) = command {
-                                bridge::notify(0, "url", &url.url, &[]);
+                            match command {
+                                egui::OutputCommand::CopyText(text) => {
+                                    let _ = clipboard::set_text(text);
+                                }
+                                egui::OutputCommand::CopyImage(image) => {
+                                    let mut rgba =
+                                        Vec::with_capacity(image.pixels.len().saturating_mul(4));
+                                    for pixel in &image.pixels {
+                                        rgba.extend_from_slice(&[
+                                            pixel.r(),
+                                            pixel.g(),
+                                            pixel.b(),
+                                            pixel.a(),
+                                        ]);
+                                    }
+                                    let _ = clipboard::set_image(
+                                        image.width() as u32,
+                                        image.height() as u32,
+                                        &rgba,
+                                    );
+                                }
+                                egui::OutputCommand::OpenUrl(url) => {
+                                    bridge::notify(0, "url", &url.url, &[]);
+                                }
                             }
                         }
                         // Sub-windows repaint with the root pass; honour their repaint requests.

@@ -24,6 +24,7 @@ build() {
 }
 install() {
   one_device
+  python3 "$ROOT/scripts/check_clipboard_signing.py" --root "$ROOT"
   local hap="$ROOT/entry/build/default/outputs/default/entry-default-signed.hap"
   [[ -f "$hap" ]] || { echo 'Configure local debug signing in DevEco Studio' >&2; exit 1; }
   local result

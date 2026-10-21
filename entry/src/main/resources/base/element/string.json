@@ -3,6 +3,10 @@
     {
       "name": "module_description",
       "value": "ArtForge Photo offline image editor"
+    },
+    {
+      "name": "permission_read_pasteboard_reason",
+      "value": "粘贴你主动复制的截图、图片或文字"
     }
   ]
 }

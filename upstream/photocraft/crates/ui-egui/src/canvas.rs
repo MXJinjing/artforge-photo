@@ -7304,8 +7304,13 @@ mod tests {
             app.ui.recent_files.iter().map(|p| crate::file_open::display_name(p)).collect::<Vec<_>>()
         };
         assert_eq!(listed(&h), ["a.png", "b.psd", "c.tif"]);
-        assert!(h.query_by_label("Remove b.psd from Recent").is_none(), "the × shows on the hovered row only");
-
+        // The ArtForge start screen keeps the × reachable without hover: touch has none.
+        // Upstream's start screen shows it on the hovered row only.
+        if cfg!(feature = "harmonyos-ui") {
+            assert!(h.query_by_label("Remove b.psd from Recent").is_some(), "the touch screen keeps the × visible");
+        } else {
+            assert!(h.query_by_label("Remove b.psd from Recent").is_none(), "the × shows on the hovered row only");
+        }
         h.get_by_label("b.psd").hover();
         h.run_steps(2);
         h.get_by_label("Remove b.psd from Recent").click();

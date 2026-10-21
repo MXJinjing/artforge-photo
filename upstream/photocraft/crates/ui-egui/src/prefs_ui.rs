@@ -1092,6 +1092,12 @@ fn choice_label(v: &str) -> String {
         "metal" => "Metal".into(),
         "gl" => "OpenGL".into(),
         "cpu" => "CPU (no GPU acceleration)".into(),
+        // The ArkUI themes are named in the Window menu; reuse those labels so every language
+        // shows its own wording instead of the humanized preference key.
+        "arkuiLight" => "ArkUI Light Theme".into(),
+        "arkuiDark" => "ArkUI Dark Theme".into(),
+        "arkuiProLight" => "ArkUI Pro Light Theme".into(),
+        "arkuiProDark" => "ArkUI Pro Dark Theme".into(),
         v => humanize(v),
     }
 }

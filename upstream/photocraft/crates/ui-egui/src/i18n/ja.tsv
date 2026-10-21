@@ -3845,3 +3845,6 @@ curves	Smooth	スムーズ
 # Window full screen (HarmonyOS host)
 	Enter Full Screen	フルスクリーンにする
 	Exit Full Screen	フルスクリーンを終了
+
+# HarmonyOS Help › privacy policy
+	Privacy Policy	プライバシーポリシー

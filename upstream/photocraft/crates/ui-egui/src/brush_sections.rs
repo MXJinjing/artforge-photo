@@ -68,8 +68,10 @@ fn dim(ui: &mut egui::Ui, s: &str) {
 }
 
 /// `Control: [Off ▾] [25]`: the controller pop-up plus Fade's step count. `angle` offers the
-/// direction controls (Photoshop only has them for Angle Jitter).
-fn control_row(ui: &mut egui::Ui, id: &str, d: &mut Dynamic, angle: bool) {
+/// direction controls (Photoshop only has them for Angle Jitter). Returns whether the control
+/// changed, so the caller can react to the pick (the options-bar Pressure button follows it).
+fn control_row(ui: &mut egui::Ui, id: &str, d: &mut Dynamic, angle: bool) -> bool {
+    let before = d.control;
     ui.horizontal(|ui| {
         dim(ui, tl!("Control:"));
         let n = if angle || matches!(d.control, Control::InitialDirection | Control::Direction) { 8 } else { 6 };
@@ -82,16 +84,19 @@ fn control_row(ui: &mut egui::Ui, id: &str, d: &mut Dynamic, angle: bool) {
         }
     });
     ui.add_space(2.0);
+    d.control != before
 }
 
 /// A jitter slider, its Control row and (optionally) the Minimum slider: one Photoshop block.
-fn dynamic(ui: &mut egui::Ui, id: &str, label: &str, d: &mut Dynamic, max: f32, minimum: Option<&str>, angle: bool) {
+/// Returns whether the control changed.
+fn dynamic(ui: &mut egui::Ui, id: &str, label: &str, d: &mut Dynamic, max: f32, minimum: Option<&str>, angle: bool) -> bool {
     pct(ui, label, &mut d.jitter, max);
-    control_row(ui, id, d, angle);
+    let changed = control_row(ui, id, d, angle);
     if let Some(m) = minimum {
         minimum_row(ui, m, d);
     }
     ui.add_space(6.0);
+    changed
 }
 
 /// Minimum belongs to the control. Off disables editing without discarding its saved value.
@@ -334,10 +339,14 @@ fn tip_shape(ui: &mut egui::Ui, b: &mut BrushSettings, presets: &[BrushPreset], 
 }
 
 fn shape_dynamics(ui: &mut egui::Ui, b: &mut BrushSettings) {
+    // Picking Pen Pressure on Size lights the options-bar Pressure for Size button. Only the
+    // pick does: reading the brush must not change it, or opening the panel would push a
+    // command onto the undo journal (upstream #136).
+    let pressure_size;
     {
         let sd = &mut b.shape_dynamics;
         pct(ui, tl!("Size Jitter"), &mut sd.size.jitter, 1.0);
-        control_row(ui, "brush-size-ctl", &mut sd.size, false);
+        pressure_size = control_row(ui, "brush-size-ctl", &mut sd.size, false) && sd.size.control == Control::PenPressure;
         minimum_row(ui, tl!("Minimum Diameter"), &mut sd.size);
         // Tilt Scale applies with the size control on Pen Tilt (greyed out otherwise, like Photoshop).
         let tilt = sd.size.control == Control::PenTilt;
@@ -353,8 +362,9 @@ fn shape_dynamics(ui: &mut egui::Ui, b: &mut BrushSettings) {
         ui.add_space(2.0);
         widgets::checkbox(ui, &mut sd.brush_projection, tl!("Brush Projection")).on_hover_text(tl!("Apply the pen's tilt and rotation to the tip shape"));
     }
-    // Pen Pressure on Size lights the options-bar Pressure for Size button.
-    b.sync_pressure_flags_from_dynamics();
+    if pressure_size {
+        b.pressure_size = true;
+    }
 }
 
 fn scattering(ui: &mut egui::Ui, b: &mut BrushSettings) {
@@ -523,15 +533,20 @@ fn color_dynamics(ui: &mut egui::Ui, b: &mut BrushSettings) {
 }
 
 fn transfer(ui: &mut egui::Ui, b: &mut BrushSettings) {
+    // Picking Pen Pressure on Opacity lights the options-bar Pressure for Opacity button (the
+    // pick alone, not the reading of the brush: see shape_dynamics).
+    let pressure_opacity;
     {
         let tr = &mut b.transfer;
-        dynamic(ui, "brush-opacity-ctl", tl!("Opacity Jitter"), &mut tr.opacity, 1.0, Some(tl!("Minimum")), false);
+        pressure_opacity = dynamic(ui, "brush-opacity-ctl", tl!("Opacity Jitter"), &mut tr.opacity, 1.0, Some(tl!("Minimum")), false)
+            && tr.opacity.control == Control::PenPressure;
         dynamic(ui, "brush-flow-ctl", tl!("Flow Jitter"), &mut tr.flow, 1.0, Some(tl!("Minimum")), false);
         dynamic(ui, "brush-wet-ctl", tl!("Wetness Jitter"), &mut tr.wetness, 1.0, Some(tl!("Minimum")), false);
         dynamic(ui, "brush-mix-ctl", tl!("Mix Jitter"), &mut tr.mix, 1.0, Some(tl!("Minimum")), false);
     }
-    // Pen Pressure on Opacity lights the options-bar Pressure for Opacity button.
-    b.sync_pressure_flags_from_dynamics();
+    if pressure_opacity {
+        b.pressure_opacity = true;
+    }
 }
 
 /// The Mixer Brush options the brush carries (Photoshop shows them in the Mixer Brush's options

@@ -3134,3 +3134,6 @@ curves	Smooth	Сгладить
 # Window full screen (HarmonyOS host)
 	Enter Full Screen	Полноэкранный режим
 	Exit Full Screen	Выйти из полноэкранного режима
+
+# HarmonyOS Help › privacy policy
+	Privacy Policy	Политика конфиденциальности

@@ -3170,3 +3170,6 @@ curves	Smooth	Lisser
 # Window full screen (HarmonyOS host)
 	Enter Full Screen	Passer en plein écran
 	Exit Full Screen	Quitter le plein écran
+
+# HarmonyOS Help › privacy policy
+	Privacy Policy	Politique de confidentialité

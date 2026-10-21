@@ -4089,3 +4089,6 @@ cameraRaw	Yellow	Sárga
 # Window full screen (HarmonyOS host)
 	Enter Full Screen	Váltás teljes képernyőre
 	Exit Full Screen	Kilépés a teljes képernyőből
+
+# HarmonyOS Help › privacy policy
+	Privacy Policy	Adatvédelmi szabályzat

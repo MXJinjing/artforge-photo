@@ -3166,3 +3166,6 @@ curves	Smooth	Glätten
 # Window full screen (HarmonyOS host)
 	Enter Full Screen	Vollbild aktivieren
 	Exit Full Screen	Vollbild beenden
+
+# HarmonyOS Help › privacy policy
+	Privacy Policy	Datenschutzrichtlinie

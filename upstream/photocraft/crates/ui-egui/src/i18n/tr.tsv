@@ -3900,3 +3900,6 @@ cameraData	Lens	Lens
 # Window full screen (HarmonyOS host)
 	Enter Full Screen	Tam ekrana geç
 	Exit Full Screen	Tam ekrandan çık
+
+# HarmonyOS Help › privacy policy
+	Privacy Policy	Gizlilik politikası

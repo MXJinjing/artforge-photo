@@ -15,20 +15,23 @@ pub(crate) fn use_custom_home(_kind: ThemeKind) -> bool {
     true
 }
 
-const HOME_RECENT_LIMIT: usize = 6;
-const HOME_RECENT_ROW: f32 = 34.0;
-/// Two card sizes instead of a share of the screen: the large split card keeps a fixed width,
-/// and the compact card is square (1:1) at the same height. Only a window physically smaller
-/// than the card clamps it, so the card never overflows.
+const HOME_RECENT_LIMIT: usize = 4;
+const HOME_RECENT_ROW: f32 = 28.0;
+/// Three card sizes instead of a share of the screen: the large split card, the square medium
+/// card, and the square small one used when even the medium would crowd the sides. A short
+/// window keeps the card height: the card is clipped rather than resized.
 const HOME_PANEL_WIDTH: f32 = 900.0;
-const HOME_PANEL_MAX_HEIGHT: f32 = 560.0;
-const HOME_PANEL_COMPACT_ASPECT: f32 = 1.0;
-const HOME_PANEL_COMPACT_WIDTH: f32 = HOME_PANEL_COMPACT_ASPECT * HOME_PANEL_MAX_HEIGHT;
+const HOME_PANEL_HEIGHT: f32 = 460.0;
+const HOME_PANEL_COMPACT_SIDE: f32 = 560.0;
+/// Narrow canvases get a taller small card so the fixed Recent block still fits.
+const HOME_PANEL_SMALL_EXTRA_HEIGHT: f32 = 180.0;
 /// Space kept between the card and the canvas edge before the fixed size is clamped.
 const HOME_PANEL_MARGIN: f32 = 24.0;
+/// The app's download folder: Recent shows it by name instead of the full system path.
+const APP_DOWNLOAD_DIR: &str = "/storage/Users/currentUser/Download/io.github.mxjinjing.artforge.photo";
 /// Both side margins together keep at least this share of the canvas width, so a card never
 /// crowds the workspace: a card that would break it steps down to the compact one.
-const HOME_PANEL_MIN_SIDE_SHARE: f32 = 0.20;
+const HOME_PANEL_MIN_SIDE_SHARE: f32 = 0.15;
 
 #[derive(Clone, Copy, Debug)]
 struct HomeLayout {
@@ -51,7 +54,6 @@ struct Palette {
     primary_text: Color32,
     glass: Color32,
     glass_hover: Color32,
-    shadow: Color32,
 }
 
 impl Palette {
@@ -68,7 +70,6 @@ impl Palette {
             primary_text: t.primary_text,
             glass: with_alpha(t.field, if t.dark() { 218 } else { 236 }),
             glass_hover: with_alpha(t.hover, if t.dark() { 240 } else { 248 }),
-            shadow: t.shadow,
         }
     }
 }
@@ -109,32 +110,31 @@ pub(crate) fn start_screen(app: &mut PhotocraftApp, ui: &mut Ui) {
     let p = Palette::new(&t);
     let layout = layout(area);
 
-    paint_panel(ui, layout.panel, &p);
     if layout.split {
         paint_artwork(ui, layout.art, &p);
     } else {
-        paint_compact_artwork(ui, layout.content, &p);
+        let title_y = layout.content.top() + content_top(ui, &layout) + hero_title_height(ui, layout.content.width()) * 0.5;
+        paint_compact_artwork(ui, layout.content, &p, title_y);
     }
     paint_content(app, ui, layout, &p);
 }
 
 fn layout(area: Rect) -> HomeLayout {
-    // Keep at least 20% of the width as side space (and the usual edge margin): a card that
+    // Keep at least 15% of the width as side space (and the usual edge margin): a card that
     // would take more steps down to the compact one, then shrinks only if it still cannot fit.
-    let max_width = (area.width() * (1.0 - HOME_PANEL_MIN_SIDE_SHARE))
-        .min((area.width() - 2.0 * HOME_PANEL_MARGIN).max(0.0))
-        .max(0.0);
-    let max_height = positive_clamp(area.height() - 2.0 * HOME_PANEL_MARGIN, 0.0, HOME_PANEL_MAX_HEIGHT);
+    let max_width = (area.width() * (1.0 - HOME_PANEL_MIN_SIDE_SHARE)).min((area.width() - 2.0 * HOME_PANEL_MARGIN).max(0.0)).max(0.0);
     let large = area.width().is_finite() && HOME_PANEL_WIDTH <= max_width;
     let (panel_width, panel_height) = if large {
-        (HOME_PANEL_WIDTH, max_height)
+        (HOME_PANEL_WIDTH, HOME_PANEL_HEIGHT)
     } else {
-        // The compact card stays square, so a narrow canvas shrinks its height with it.
-        let side = HOME_PANEL_COMPACT_WIDTH.min(max_width).min(max_height);
-        (side, side)
+        // The medium card is square; a narrow canvas shrinks its width, and the small card gets
+        // extra height so the fixed Recent block still fits.
+        let side = HOME_PANEL_COMPACT_SIDE.min(max_width);
+        let height = (side + HOME_PANEL_SMALL_EXTRA_HEIGHT).min(HOME_PANEL_COMPACT_SIDE);
+        (side, height)
     };
     let panel = Rect::from_center_size(area.center(), vec2(panel_width, panel_height));
-    let split = large && panel.height() >= 460.0;
+    let split = large;
     if !split {
         return HomeLayout { panel, content: panel.shrink2(vec2(26.0, 24.0)), art: panel, split };
     }
@@ -151,21 +151,6 @@ fn positive_clamp(value: f32, min: f32, max: f32) -> f32 {
     if value.is_finite() { value.max(min).min(max) } else { min }
 }
 
-fn paint_panel(ui: &Ui, rect: Rect, p: &Palette) {
-    if !rect.is_positive() {
-        return;
-    }
-    let painter = ui.painter_at(rect.expand(28.0));
-    let shadow = egui::epaint::Shadow { offset: [0, 6], blur: 18, spread: 0, color: p.shadow };
-    painter.add(shadow.as_shape(rect, 24.0));
-    painter.rect_filled(rect, 24.0, p.panel_top);
-    painter.rect_stroke(rect, 24.0, Stroke::new(1.0, p.border), StrokeKind::Inside);
-    painter.line_segment(
-        [rect.left_top() + vec2(26.0, 1.0), rect.right_top() + vec2(-26.0, 1.0)],
-        Stroke::new(1.0, if p.dark { Color32::from_white_alpha(32) } else { Color32::from_white_alpha(230) }),
-    );
-}
-
 fn paint_content(app: &mut PhotocraftApp, ui: &mut Ui, layout: HomeLayout, p: &Palette) {
     let show_recent = app.session.prefs().interface.show_home_recent_files;
     let recent: Vec<String> =
@@ -178,30 +163,62 @@ fn paint_content(app: &mut PhotocraftApp, ui: &mut Ui, layout: HomeLayout, p: &P
             .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded)
             .auto_shrink([false, false])
             .show(ui, |ui| {
+                // Centre the block vertically when the card is taller than its content.
+                ui.add_space(content_top(ui, &layout));
                 paint_hero(ui, p);
                 ui.add_space(18.0);
                 paint_actions(app, ui, p);
+                // The Recent block always holds HOME_RECENT_LIMIT rows, so the controls above
+                // keep their place whether or not anything has been opened yet.
+                ui.add_space(18.0);
+                paint_divider(ui, p);
+                ui.add_space(12.0);
+                paint_recent(app, ui, p, &recent);
+                // The second line closes the Recent list, so it sits between two rules in every
+                // card size, empty or not. The drop hint sits below that closing rule.
+                ui.add_space(8.0);
+                paint_divider(ui, p);
                 ui.add_space(12.0);
                 paint_drop_hint(app, ui, p);
-                if !recent.is_empty() {
-                    ui.add_space(18.0);
-                    paint_divider(ui, p);
-                    ui.add_space(12.0);
-                    paint_recent(app, ui, p, &recent);
-                }
                 ui.add_space(10.0);
             });
     });
 }
 
-fn paint_hero(ui: &mut Ui, p: &Palette) {
-    let title_size = if ui.available_width() < 430.0 {
+/// Space above the content block: the card centres it vertically.
+fn content_top(ui: &Ui, layout: &HomeLayout) -> f32 {
+    ((layout.content.height() - content_height(ui, layout.content.width())) * 0.5).max(0.0)
+}
+
+/// Height of the start screen's content block, so it can be centred vertically in the card.
+fn content_height(ui: &Ui, width: f32) -> f32 {
+    let measure = |size: f32, font: FontId| ui.painter().layout_no_wrap("X".into(), font, Color32::WHITE).size().y.max(size);
+    let title_size = hero_title_size(width);
+    let title = measure(title_size, crate::theme::semibold(title_size));
+    let subtitle = measure(14.0, FontId::proportional(14.0));
+    let actions = if width < 390.0 { 44.0 * 2.0 + 8.0 } else { 48.0 };
+    // The Recent block is always reserved at full height, with the drop hint below it.
+    let recent_block = 1.0 + 12.0 + HOME_RECENT_LIMIT as f32 * HOME_RECENT_ROW + 8.0 + 1.0;
+    title + 12.0 + subtitle + 18.0 + actions + 18.0 + recent_block + 12.0 + 30.0 + 10.0
+}
+
+fn hero_title_size(width: f32) -> f32 {
+    if width < 430.0 {
         38.0
-    } else if ui.available_width() < 620.0 {
+    } else if width < 620.0 {
         46.0
     } else {
         52.0
-    };
+    }
+}
+
+fn hero_title_height(ui: &Ui, width: f32) -> f32 {
+    let size = hero_title_size(width);
+    ui.painter().layout_no_wrap(brand::app_name().into(), crate::theme::semibold(size), Color32::WHITE).size().y
+}
+
+fn paint_hero(ui: &mut Ui, p: &Palette) {
+    let title_size = hero_title_size(ui.available_width());
     // The brand title is painted, not labelled, like the upstream start screen: the About dialog
     // owns the accessible product name, so the Home title must not duplicate it in the widget tree.
     let galley = ui.painter().layout_no_wrap(brand::app_name().into(), crate::theme::semibold(title_size), p.ink);
@@ -215,12 +232,12 @@ fn paint_actions(app: &mut PhotocraftApp, ui: &mut Ui, p: &Palette) {
     let new_label = crate::shortcuts::command_label(app, "New document…", "file.new");
     let open_label = crate::shortcuts::command_label(app, "Open…", "file.open");
     if ui.available_width() < 390.0 {
-        if action_card(ui, vec2(ui.available_width(), 58.0), "plus", &new_label, "NEW CANVAS", true, p).clicked() {
+        if action_card(ui, vec2(ui.available_width(), 44.0), "plus", &new_label, true, p).clicked() {
             let fields = app.new_document_fields();
             app.ui.open_dialog(crate::state::DialogKind::NewDocument, fields);
         }
         ui.add_space(8.0);
-        if action_card(ui, vec2(ui.available_width(), 58.0), "folder-open", &open_label, "FROM DEVICE", false, p).clicked() {
+        if action_card(ui, vec2(ui.available_width(), 44.0), "folder-open", &open_label, false, p).clicked() {
             let _ = app.open_dialog_file();
         }
         return;
@@ -229,17 +246,17 @@ fn paint_actions(app: &mut PhotocraftApp, ui: &mut Ui, p: &Palette) {
     let width = ((ui.available_width() - gap) * 0.5).max(0.0);
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = gap;
-        if action_card(ui, vec2(width, 66.0), "plus", &new_label, "NEW CANVAS", true, p).clicked() {
+        if action_card(ui, vec2(width, 48.0), "plus", &new_label, true, p).clicked() {
             let fields = app.new_document_fields();
             app.ui.open_dialog(crate::state::DialogKind::NewDocument, fields);
         }
-        if action_card(ui, vec2(width, 66.0), "folder-open", &open_label, "FROM DEVICE", false, p).clicked() {
+        if action_card(ui, vec2(width, 48.0), "folder-open", &open_label, false, p).clicked() {
             let _ = app.open_dialog_file();
         }
     });
 }
 
-fn action_card(ui: &mut Ui, size: Vec2, icon: &str, label: &str, eyebrow: &str, primary: bool, p: &Palette) -> Response {
+fn action_card(ui: &mut Ui, size: Vec2, icon: &str, label: &str, primary: bool, p: &Palette) -> Response {
     let (rect, response) = ui.allocate_exact_size(size, Sense::click());
     let hovered = response.hovered();
     let pressed = response.is_pointer_button_down_on();
@@ -255,21 +272,14 @@ fn action_card(ui: &mut Ui, size: Vec2, icon: &str, label: &str, eyebrow: &str, 
     if pressed {
         painter.rect_filled(rect, 12.0, Color32::from_black_alpha(24));
     }
-    let icon_rect = Rect::from_center_size(pos2(rect.left() + 25.0, rect.center().y), vec2(30.0, 30.0));
-    painter.rect_filled(icon_rect, 9.0, if primary { with_alpha(p.primary_text, 35) } else { p.glass_hover });
-    icons::paint(ui, icon_rect, icon, 16.0, if primary { p.primary_text } else { p.ink });
-    let text_x = rect.left() + 47.0;
-    painter.text(
-        pos2(text_x, rect.center().y - 8.0),
-        Align2::LEFT_CENTER,
-        eyebrow,
-        FontId::monospace(8.5),
-        if primary { with_alpha(p.primary_text, 190) } else { p.faint },
-    );
+    let icon_rect = Rect::from_center_size(pos2(rect.left() + 20.0, rect.center().y), vec2(24.0, 24.0));
+    painter.rect_filled(icon_rect, 7.0, if primary { with_alpha(p.primary_text, 35) } else { p.glass_hover });
+    icons::paint(ui, icon_rect, icon, 13.0, if primary { p.primary_text } else { p.ink });
+    let text_x = icon_rect.right() + 10.0;
     let label_color = if primary { p.primary_text } else { p.ink };
     let available = (rect.right() - text_x - 10.0).max(0.0);
     let galley = ui.painter().layout(label.to_owned(), FontId::proportional(13.5), label_color, available);
-    painter.galley(pos2(text_x, rect.center().y + 3.0), galley, label_color);
+    painter.galley(pos2(text_x, rect.center().y - galley.size().y * 0.5), galley, label_color);
     response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
     response.on_hover_cursor(egui::CursorIcon::PointingHand)
 }
@@ -282,10 +292,14 @@ fn paint_drop_hint(app: &PhotocraftApp, ui: &mut Ui, p: &Palette) {
     };
     let (rect, response) = ui.allocate_exact_size(vec2(ui.available_width().max(0.0), 30.0), Sense::hover());
     ui.painter().rect_filled(rect, 9.0, with_alpha(p.glass, if p.dark { 12 } else { 80 }));
-    let icon = Rect::from_center_size(pos2(rect.left() + 17.0, rect.center().y), vec2(16.0, 16.0));
-    icons::paint(ui, icon, "image", 13.0, p.faint);
     let galley = crate::tab_strip::elided(ui, &msg, FontId::proportional(11.5), p.faint, (rect.width() - 40.0).max(0.0));
-    ui.painter().galley(pos2(rect.left() + 31.0, rect.center().y - galley.size().y * 0.5), galley, p.faint);
+    // Centre the icon and its text as one group inside the bar.
+    let icon_side = 16.0;
+    let gap = 8.0;
+    let start = rect.center().x - (icon_side + gap + galley.size().x) * 0.5;
+    let icon = Rect::from_center_size(pos2(start + icon_side * 0.5, rect.center().y), vec2(icon_side, icon_side));
+    icons::paint(ui, icon, "image", 13.0, p.faint);
+    ui.painter().galley(pos2(start + icon_side + gap, rect.center().y - galley.size().y * 0.5), galley, p.faint);
     response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, tl!("Drop an image or PSD anywhere to open it.")));
 }
 
@@ -294,33 +308,45 @@ fn paint_divider(ui: &Ui, p: &Palette) {
     ui.painter().line_segment([rect.left_center(), rect.right_center()], Stroke::new(1.0, p.border));
 }
 
+/// The folder shown beside a Recent entry, with the app's download folder named instead of its
+/// long sandbox path.
+fn display_folder(path: &str) -> String {
+    let folder = std::path::Path::new(path).parent().map(|d| d.to_string_lossy().into_owned()).unwrap_or_default();
+    if folder == APP_DOWNLOAD_DIR {
+        return tl!("App downloads").to_owned();
+    }
+    match folder.strip_prefix(APP_DOWNLOAD_DIR).and_then(|rest| rest.strip_prefix('/')) {
+        Some(rest) => format!("{}/{}", tl!("App downloads"), rest),
+        None => folder,
+    }
+}
+
 fn paint_recent(app: &mut PhotocraftApp, ui: &mut Ui, p: &Palette, recent: &[String]) {
     let width = ui.available_width().max(0.0);
-    ui.horizontal(|ui| {
-        ui.label(egui::RichText::new(tl!("Recent")).font(crate::theme::semibold(12.0)).color(p.ink));
-        ui.add_space(8.0);
-        ui.label(egui::RichText::new(format!("{:02}", recent.len())).font(FontId::monospace(9.5)).color(p.faint));
-    });
-    ui.add_space(6.0);
+    if recent.is_empty() {
+        let (rect, _) = ui.allocate_exact_size(vec2(width, HOME_RECENT_LIMIT as f32 * HOME_RECENT_ROW), Sense::hover());
+        ui.painter().text(rect.center(), Align2::CENTER_CENTER, tl!("No recently opened documents"), FontId::proportional(11.5), p.faint);
+        return;
+    }
     let mut open = None;
     let mut remove = None;
     let mut clear = false;
     for path in recent {
         let name = crate::file_open::display_name(path);
-        let folder = std::path::Path::new(path).parent().map(|d| d.to_string_lossy().into_owned()).unwrap_or_default();
+        let folder = display_folder(path);
         let (row, response) = ui.allocate_exact_size(vec2(width, HOME_RECENT_ROW), Sense::click());
         let hovered = ui.rect_contains_pointer(row);
         if hovered {
             ui.painter().rect_filled(row, 9.0, p.glass_hover);
         }
-        let accent = Rect::from_min_max(row.left_top() + vec2(0.0, 7.0), pos2(row.left() + 2.0, row.bottom() - 7.0));
+        let accent = Rect::from_min_max(row.left_top() + vec2(0.0, 6.0), pos2(row.left() + 2.0, row.bottom() - 6.0));
         ui.painter().rect_filled(accent, 1.0, p.blue);
-        let icon_rect = Rect::from_center_size(pos2(row.left() + 18.0, row.center().y), vec2(20.0, 20.0));
-        ui.painter().circle_filled(icon_rect.center(), 9.5, with_alpha(p.blue, if p.dark { 30 } else { 20 }));
-        icons::paint(ui, icon_rect, "file", 13.0, p.muted);
-        let close = Rect::from_center_size(pos2(row.right() - 17.0, row.center().y), vec2(22.0, 22.0));
+        let icon_rect = Rect::from_center_size(pos2(row.left() + 16.0, row.center().y), vec2(18.0, 18.0));
+        ui.painter().circle_filled(icon_rect.center(), 8.5, with_alpha(p.blue, if p.dark { 30 } else { 20 }));
+        icons::paint(ui, icon_rect, "file", 12.0, p.muted);
+        let close = Rect::from_center_size(pos2(row.right() - 16.0, row.center().y), vec2(22.0, 22.0));
         let right = close.left() - 5.0;
-        let text_x = row.left() + 34.0;
+        let text_x = row.left() + 30.0;
         let name_g = crate::tab_strip::elided(ui, &name, FontId::proportional(12.5), p.ink, (width * 0.52).max(48.0));
         ui.painter().galley(pos2(text_x, row.center().y - name_g.size().y * 0.5), name_g.clone(), p.ink);
         let folder_max = (right - (text_x + name_g.size().x + 12.0)).max(0.0);
@@ -352,6 +378,9 @@ fn paint_recent(app: &mut PhotocraftApp, ui: &mut Ui, p: &Palette, recent: &[Str
                 ui.close();
             }
         });
+    }
+    for _ in recent.len()..HOME_RECENT_LIMIT {
+        ui.add_space(HOME_RECENT_ROW);
     }
     if clear {
         app.clear_recent();
@@ -396,14 +425,16 @@ fn paint_artwork(ui: &Ui, rect: Rect, p: &Palette) {
     painter.line_segment([label_pos + vec2(108.0, 0.0), pos2(rect.right() - 18.0, rect.bottom() - 18.0)], Stroke::new(1.0, p.border));
 }
 
-fn paint_compact_artwork(ui: &Ui, rect: Rect, p: &Palette) {
+fn paint_compact_artwork(ui: &Ui, rect: Rect, p: &Palette, title_y: f32) {
     if !rect.is_positive() {
         return;
     }
     let painter = ui.painter_at(rect);
     let radius = 46.0;
     let inset = 14.0;
-    let center = pos2(rect.right() - radius - inset, rect.top() + radius + inset);
+    // The ring sits on the hero title's centre line, at the card's top-right.
+    // Nudged left so the glow is not clipped by the card's right edge.
+    let center = pos2(rect.right() - radius - inset - 10.0, title_y.clamp(rect.top() + radius, rect.bottom() - radius));
     paint_glow(&painter, center, radius * 1.55, p.blue);
     for layer in 0..2 {
         let start = layer as f32 * 0.7 + 0.4;
@@ -418,7 +449,6 @@ fn paint_compact_artwork(ui: &Ui, rect: Rect, p: &Palette) {
     }
     let watermark = with_alpha(p.blue, if p.dark { 12 } else { 14 });
     painter.text(pos2(rect.left() + 12.0, rect.bottom() - 44.0), Align2::LEFT_BOTTOM, "01", FontId::monospace(92.0), watermark);
-    painter.line_segment([pos2(rect.left() + 18.0, rect.bottom() - 32.0), pos2(rect.right() - 16.0, rect.bottom() - 32.0)], Stroke::new(1.0, p.border));
 }
 
 fn paint_swatch(painter: &egui::Painter, rect: Rect, color: Color32, p: &Palette, angle: f32) {
@@ -490,36 +520,36 @@ mod tests {
             assert_eq!(p.faint, t.text_faint, "{kind:?}");
             assert_eq!(p.blue, t.primary_bg, "{kind:?}");
             assert_eq!(p.border, t.card_border, "{kind:?}");
-            assert_eq!(p.shadow, t.shadow, "{kind:?}");
         }
     }
 
     #[test]
-    fn custom_home_keeps_two_fixed_card_sizes() {
-        // The large card is fixed at 900 × 560 while it still leaves 20% of the width at the sides.
-        for width in [1200.0, 1280.0, 1920.0] {
+    fn custom_home_keeps_three_fixed_card_sizes() {
+        // Large: 900 x 560 while it still leaves 15% of the width at the sides.
+        for width in [1060.0, 1280.0, 1920.0] {
             let home = layout(Rect::from_min_size(Pos2::ZERO, vec2(width, 800.0)));
-            assert_eq!(home.panel.size(), vec2(HOME_PANEL_WIDTH, HOME_PANEL_MAX_HEIGHT), "{width}");
+            assert_eq!(home.panel.size(), vec2(HOME_PANEL_WIDTH, HOME_PANEL_HEIGHT), "{width}");
             assert!(home.split, "{width}");
         }
-        // Otherwise the compact card is a fixed square at the same height.
-        for width in [800.0, 900.0, 1100.0] {
+        // Medium: the square 560 card whenever the large one would crowd the sides.
+        for width in [800.0, 900.0, 1050.0] {
             let home = layout(Rect::from_min_size(Pos2::ZERO, vec2(width, 800.0)));
-            assert_eq!(home.panel.size(), vec2(HOME_PANEL_COMPACT_WIDTH, HOME_PANEL_MAX_HEIGHT), "{width}");
-            assert_eq!(home.panel.width(), home.panel.height() * HOME_PANEL_COMPACT_ASPECT, "{width}");
+            assert_eq!(home.panel.size(), vec2(HOME_PANEL_COMPACT_SIDE, HOME_PANEL_COMPACT_SIDE), "{width}");
             assert!(!home.split, "{width}");
         }
-        // A canvas narrower than the square shrinks it, still square.
-        for (width, side) in [(650.0, 520.0), (520.0, 416.0)] {
+        // Small: a narrower canvas shrinks the width and adds 180 vp of height.
+        for (width, side) in [(450.0, 382.5), (400.0, 340.0)] {
             let home = layout(Rect::from_min_size(Pos2::ZERO, vec2(width, 620.0)));
             assert!((home.panel.width() - side).abs() < 0.01, "{width}");
-            assert!((home.panel.height() - side).abs() < 0.01, "{width}");
+            assert!((home.panel.height() - (side + HOME_PANEL_SMALL_EXTRA_HEIGHT).min(HOME_PANEL_COMPACT_SIDE)).abs() < 0.01, "{width}");
         }
     }
 
     #[test]
     fn custom_home_layout_is_contained_and_switches_to_compact_cleanly() {
-        for (size, should_split) in [(vec2(1920.0, 800.0), true), (vec2(1280.0, 800.0), true), (vec2(1100.0, 800.0), false), (vec2(620.0, 760.0), false), (vec2(420.0, 620.0), false)] {
+        for (size, should_split) in
+            [(vec2(1920.0, 800.0), true), (vec2(1280.0, 800.0), true), (vec2(1000.0, 800.0), false), (vec2(620.0, 760.0), false), (vec2(420.0, 620.0), false)]
+        {
             let area = Rect::from_min_size(Pos2::ZERO, size);
             let home = layout(area);
             assert!(area.contains_rect(home.panel));
@@ -532,6 +562,14 @@ mod tests {
                 assert!(!home.split);
             }
         }
+    }
+
+    #[test]
+    fn app_download_folder_gets_a_friendly_name() {
+        let label = tl!("App downloads");
+        assert_eq!(display_folder(&format!("{APP_DOWNLOAD_DIR}/海报.psd")), label);
+        assert_eq!(display_folder(&format!("{APP_DOWNLOAD_DIR}/exports/海报.png")), format!("{label}/exports"));
+        assert_eq!(display_folder("/Users/wjj/Pictures/海报.psd"), "/Users/wjj/Pictures");
     }
 
     #[test]

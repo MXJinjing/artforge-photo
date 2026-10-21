@@ -7,6 +7,14 @@ from pathlib import Path
 import re
 import subprocess
 
+from build_profile import (
+    BUILD_PROFILE,
+    load_profile,
+    material_path,
+    product_signing_name,
+    signing_config,
+)
+
 PERMISSION = "ohos.permission.READ_PASTEBOARD"
 
 
@@ -17,15 +25,33 @@ def clipboard_allowed(profile):
 
 
 def configured_profile(root):
-    config = root / "build-profile.json5"
-    if not config.is_file():
-        return None
-    text = config.read_text()
-    paths = re.findall(r"[\"']?profile[\"']?\s*:\s*[\"']([^\"']+)", text)
+    """Path of the Profile used by the build.
+
+    Several signing configs may be declared, for example the automatic debug
+    signing and a manually issued release signing. The one used by the build is
+    selected through ``app.products[].signingConfig``; a hand-written profile
+    without that reference falls back to a textual scan.
+    """
+    root = Path(root)
+    profile = load_profile(root / BUILD_PROFILE)
+    if profile is not None:
+        name = product_signing_name(profile)
+        if name:
+            config = signing_config(profile, name)
+            if config is None:
+                raise ValueError(f"signing config '{name}' is not declared")
+            return material_path(config, "profile", root)
+    text = (root / BUILD_PROFILE).read_text()
+    paths = list(
+        dict.fromkeys(re.findall(r"[\"']?profile[\"']?\s*:\s*[\"']([^\"']+)", text))
+    )
     if not paths:
         return None
     if len(paths) != 1:
-        raise ValueError("expected one local signing Profile")
+        raise ValueError(
+            "several local signing Profiles; select one with "
+            "app.products[].signingConfig"
+        )
     path = Path(paths[0]).expanduser()
     return path if path.is_absolute() else root / path
 

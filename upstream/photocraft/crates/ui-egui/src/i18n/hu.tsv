@@ -4182,3 +4182,7 @@ cameraRaw	Yellow	Sárga
 	GPU Memory (MB, 0 = Automatic)	GPU-memória (MB, 0 = Automatikus)
 	{name} was changed by another app after it was opened or saved here.	A(z) {name} fájlt egy másik alkalmazás módosította, miután itt megnyitották vagy mentették.
 	Replace it with this document, or cancel and use File › Save As to keep both.	Cserélje le erre a dokumentumra, vagy válassza a Mégse gombot, és a Fájl › Mentés másként paranccsal tartsa meg mindkettőt.
+# HarmonyOS Home › Recent folder label
+	App downloads	Alkalmazás letöltései
+# HarmonyOS Home › Recent empty state
+	No recently opened documents	Nincsenek nemrég megnyitott dokumentumok

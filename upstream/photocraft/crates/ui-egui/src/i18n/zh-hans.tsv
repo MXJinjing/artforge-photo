@@ -2885,3 +2885,7 @@ curves	Smooth	平滑
 	Readings are before the pressure curve and remain available with tablet pressure off.	显示应用压感曲线之前的数据；关闭数位板压感仍可查看。
 	Eraser end	橡皮端
 	Pen tip	笔尖
+# HarmonyOS Home › Recent folder label
+	App downloads	应用下载目录
+# HarmonyOS Home › Recent empty state
+	No recently opened documents	没有最近打开的文档

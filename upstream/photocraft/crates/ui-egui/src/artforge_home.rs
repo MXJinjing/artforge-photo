@@ -298,7 +298,7 @@ fn paint_recent(app: &mut PhotocraftApp, ui: &mut Ui, p: &Palette, recent: &[Str
         ui.painter().circle_filled(icon_rect.center(), 9.5, with_alpha(p.blue, if p.dark { 30 } else { 20 }));
         icons::paint(ui, icon_rect, "file", 13.0, p.muted);
         let close = Rect::from_center_size(pos2(row.right() - 17.0, row.center().y), vec2(22.0, 22.0));
-        let right = if hovered { close.left() - 5.0 } else { row.right() - 11.0 };
+        let right = close.left() - 5.0;
         let text_x = row.left() + 34.0;
         let name_g = crate::tab_strip::elided(ui, &name, FontId::proportional(12.5), p.ink, (width * 0.52).max(48.0));
         ui.painter().galley(pos2(text_x, row.center().y - name_g.size().y * 0.5), name_g.clone(), p.ink);
@@ -309,15 +309,14 @@ fn paint_recent(app: &mut PhotocraftApp, ui: &mut Ui, p: &Palette, recent: &[Str
         }
         response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &name));
         let response = response.on_hover_text(path).on_hover_cursor(egui::CursorIcon::PointingHand);
-        if hovered {
-            let x = ui.interact(close, response.id.with("remove"), Sense::click());
-            let label = crate::i18n::fmt(tl!("Remove {name} from Recent"), &[("name", &name)]);
-            x.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &label));
-            let color = crate::icons::button_chrome(ui, close, false, x.hovered());
-            crate::icons::paint(ui, close, "x", 12.0, color);
-            if x.on_hover_text(tl!("Remove from Recent")).clicked() {
-                remove = Some(path.clone());
-            }
+        // Touch input has no hover: keep both the icon and its hit target available.
+        let x = ui.interact(close, response.id.with("remove"), Sense::click());
+        let label = crate::i18n::fmt(tl!("Remove {name} from Recent"), &[("name", &name)]);
+        x.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &label));
+        let color = crate::icons::button_chrome(ui, close, false, x.hovered());
+        crate::icons::paint(ui, close, "x", 12.0, color);
+        if x.on_hover_text(tl!("Remove from Recent")).clicked() {
+            remove = Some(path.clone());
         }
         if response.clicked() && remove.is_none() {
             open = Some(path.clone());
@@ -472,6 +471,27 @@ mod tests {
             assert_eq!(p.border, t.card_border, "{kind:?}");
             assert_eq!(p.shadow, t.shadow, "{kind:?}");
         }
+    }
+
+    #[test]
+    fn custom_home_keeps_two_fixed_card_sizes() {
+        // The large card is fixed at 900 × 560 whenever it fits with the margin.
+        for width in [948.0, 1280.0, 1920.0] {
+            let home = layout(Rect::from_min_size(Pos2::ZERO, vec2(width, 800.0)));
+            assert_eq!(home.panel.size(), vec2(HOME_PANEL_WIDTH, HOME_PANEL_MAX_HEIGHT), "{width}");
+            assert!(home.split, "{width}");
+        }
+        // The compact card is square: same height, equal width, whatever room is left.
+        for width in [608.0, 800.0, 940.0] {
+            let home = layout(Rect::from_min_size(Pos2::ZERO, vec2(width, 800.0)));
+            assert_eq!(home.panel.size(), vec2(HOME_PANEL_COMPACT_WIDTH, HOME_PANEL_MAX_HEIGHT), "{width}");
+            assert_eq!(home.panel.width(), home.panel.height() * HOME_PANEL_COMPACT_ASPECT, "{width}");
+            assert!(!home.split, "{width}");
+        }
+        // Only a window smaller than the card itself clamps it.
+        let narrow = layout(Rect::from_min_size(Pos2::ZERO, vec2(520.0, 520.0)));
+        assert_eq!(narrow.panel.width(), 520.0 - 2.0 * HOME_PANEL_MARGIN);
+        assert_eq!(narrow.panel.height(), 520.0 - 2.0 * HOME_PANEL_MARGIN);
     }
 
     #[test]

@@ -16,6 +16,7 @@ import { HarmonyStylusAdapter } from '../stylus/HarmonyStylusAdapter';
 import { StylusPacket } from '../stylus/StylusProtocol';
 import { NativeImeAdapter, NativeImeState } from '../input/NativeImeAdapter';
 import { NativeCursorAdapter } from '../input/NativeCursorAdapter';
+import { ClipboardReply, NativeClipboardAdapter } from '../input/NativeClipboardAdapter';
 import { IMAGE_DROP_TYPES, NativeDropAdapter } from '../input/NativeDropAdapter';
 import { DropPreview, DropTargetFeedback, localDropPoint } from '../input/DropPreview';
 import { isFiniteHoverPoint, penHoverLeaveMessage, penHoverMoveMessage } from '../input/PenHoverPreview';
@@ -132,6 +133,7 @@ struct Index {
     (key: string): void => { this.getUIContext().getDragController().cancelDataLoading(key); },
     (name: string, fd: number): void => { native.openFile(name, fd); });
   private ime: NativeImeAdapter = new NativeImeAdapter((message: string): void => native.input(message));
+  private clipboard: NativeClipboardAdapter = new NativeClipboardAdapter(this.context);
   private printing: NativePrintAdapter = new NativePrintAdapter(this.context,
     (message: string): void => { if (this.alive) { this.failure = message; } });
   private drainOpens(): void {
@@ -274,6 +276,10 @@ struct Index {
     else if (request.kind === 'save_select') { this.selectSave(id, request.text); }
     else if (request.kind === 'write') { this.writeFile(id, request.text, data); }
     else if (request.kind === 'print') { this.printFile(id, request.text, data); }
+    else if (request.kind === 'clipboard_set_image' || request.kind === 'clipboard_get_image' ||
+      request.kind === 'clipboard_set_text' || request.kind === 'clipboard_get_text') {
+      this.handleClipboard(id, request.kind, request.text, data);
+    }
     else if (request.kind === 'close') {
       allowConfirmedClose(); this.context.terminateSelf();
     } else if (request.kind === 'url') {
@@ -301,6 +307,18 @@ struct Index {
     } catch (error) {
       native.reply(id, false, (error as Error).message, new ArrayBuffer(0));
     } finally { this.restoreEditorFocus(); }
+  }
+  private async handleClipboard(id: number, kind: string, text: string, bytes: ArrayBuffer): Promise<void> {
+    const generation = this.generation;
+    try {
+      const reply: ClipboardReply = await this.clipboard.handle(kind, text, bytes,
+        (): boolean => this.alive && generation === this.generation);
+      native.reply(id, true, reply.text, reply.bytes);
+    } catch (error) {
+      native.reply(id, false, (error as Error).message, new ArrayBuffer(0));
+    } finally {
+      this.restoreEditorFocus();
+    }
   }
   private restoreEditorFocus(): void {
     // 系统选择器或弹窗关闭后恢复 XComponent 焦点，硬件快捷键才能继续到达编辑器。

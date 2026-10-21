@@ -1,0 +1,7 @@
+# 模板选择器
+# blank_issues_enabled: false 表示必须选择模板提交，避免信息不全的反馈。
+blank_issues_enabled: false
+contact_links:
+  - name: 上游引擎 PhotoCraft（开源）
+    url: https://github.com/storytold/photocraft
+    about: 关于底层图像处理引擎本身的讨论，可直接到上游开源仓库进行；应用本身的缺陷与需求请在本仓库提交

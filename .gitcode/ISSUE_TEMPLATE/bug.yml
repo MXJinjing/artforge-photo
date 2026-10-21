@@ -1,0 +1,91 @@
+name: 反馈 Bug
+description: 报告一个可复现的缺陷，帮助我们定位并修复
+title: "[Bug] "
+assignees: "MXJinjing"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！本应用为 **艺工坊·修图**（HarmonyOS 平板修图应用）。
+
+        提交前请先搜索已有 Issue，确认不是重复报告。
+
+        **隐私提示**：请勿上传含个人信息的原始照片，复现问题请使用不含隐私的示例图片。
+  - type: input
+    id: version
+    attributes:
+      label: 应用版本
+      description: 应用内「我的 / 关于」页面显示的版本号
+      placeholder: "例：0.9.0.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 设备与系统
+      description: 选择最接近的一项
+      options:
+        - 平板 · HarmonyOS NEXT
+        - 平板 · HarmonyOS 4 及更早
+        - 二合一笔记本 · HarmonyOS NEXT
+        - 其他
+    validations:
+      required: true
+  - type: input
+    id: device-model
+    attributes:
+      label: 具体机型
+      description: 选填，有助于排查设备相关问题
+      placeholder: "例：MatePad Pro 13.2、MateBook X Pro"
+    validations:
+      required: false
+  - type: dropdown
+    id: module
+    attributes:
+      label: 问题所在功能
+      options:
+        - 打开与导入图片
+        - 编辑（滤镜 / 调整 / 画笔 / 裁剪 / 文字等）
+        - 撤销与重做
+        - 图层与历史记录
+        - 保存与另存为
+        - 界面与交互
+        - 性能与稳定性（卡顿、闪退、耗电）
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请按顺序描述如何触发该问题
+      placeholder: |
+        1. 打开一张示例图片
+        2. 进入「滤镜」面板
+        3. 选择某个 LUT 预设
+      validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望结果
+      description: 你预期应该发生什么
+      placeholder: 描述预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+      description: 实际发生了什么；如为闪退或报错，请附上完整报错文字
+      placeholder: 描述实际现象，或粘贴完整报错信息
+    validations:
+      required: true
+  - type: input
+    id: contact
+    attributes:
+      label: 联系方式
+      description: 选填。留下邮箱或微信，便于我们追问细节
+      placeholder: "例：you@example.com"
+    validations:
+      required: false

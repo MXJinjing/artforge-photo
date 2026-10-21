@@ -1,0 +1,59 @@
+name: 功能建议
+description: 提议新功能，或对现有功能提出改进
+title: "[Feature] "
+assignees: "MXJinjing"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢建议！请尽量说明你想解决的**实际场景**，这比具体功能点更有助于我们判断取舍。
+
+        我们的取舍原则是：优先保证**修图主流程**的稳定与流畅，再逐步扩展周边能力。
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你想解决什么问题
+      description: 描述当前遇到的困难或限制
+      placeholder: 例：批量处理时每张都要重复点同一组参数……
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 你期望的方案
+      description: 描述你设想的做法；如果有多个方案，都写出来也可以
+      placeholder: 例：希望支持调整参数的预设保存与复用
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 期望的紧急程度
+      options:
+        - 只是顺手提个建议
+        - 希望能尽快支持
+        - 没有它就无法完成我的工作
+    validations:
+      required: true
+  - type: checkboxes
+    id: usage
+    attributes:
+      label: 使用场景
+      description: 可多选
+      options:
+        - label: 人像修图
+        - label: 风景与风光
+        - label: 静物与商品
+        - label: 日常随手拍
+        - label: 批量处理
+        - label: 创作与作品输出
+    validations:
+      required: false
+  - type: input
+    id: contact
+    attributes:
+      label: 联系方式
+      description: 选填。留下邮箱或微信，便于我们在采纳前与你确认细节
+      placeholder: "例：you@example.com"
+    validations:
+      required: false

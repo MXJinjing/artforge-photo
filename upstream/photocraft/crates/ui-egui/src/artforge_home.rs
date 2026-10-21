@@ -26,6 +26,9 @@ const HOME_PANEL_COMPACT_ASPECT: f32 = 1.0;
 const HOME_PANEL_COMPACT_WIDTH: f32 = HOME_PANEL_COMPACT_ASPECT * HOME_PANEL_MAX_HEIGHT;
 /// Space kept between the card and the canvas edge before the fixed size is clamped.
 const HOME_PANEL_MARGIN: f32 = 24.0;
+/// Both side margins together keep at least this share of the canvas width, so a card never
+/// crowds the workspace: a card that would break it steps down to the compact one.
+const HOME_PANEL_MIN_SIDE_SHARE: f32 = 0.30;
 
 #[derive(Clone, Copy, Debug)]
 struct HomeLayout {
@@ -116,13 +119,20 @@ pub(crate) fn start_screen(app: &mut PhotocraftApp, ui: &mut Ui) {
 }
 
 fn layout(area: Rect) -> HomeLayout {
-    // The large card is chosen only when it fits with its margin; otherwise the compact one.
-    let large = area.width() >= HOME_PANEL_WIDTH + 2.0 * HOME_PANEL_MARGIN;
-    let wanted_width = if large { HOME_PANEL_WIDTH } else { HOME_PANEL_COMPACT_WIDTH };
-    // Fixed sizes: the margin only gives way on a window smaller than the card itself.
-    let available_width = (area.width() - 2.0 * HOME_PANEL_MARGIN).max(0.0);
-    let panel_width = positive_clamp(wanted_width, 0.0, available_width);
-    let panel_height = positive_clamp(area.height() - 2.0 * HOME_PANEL_MARGIN, 0.0, HOME_PANEL_MAX_HEIGHT);
+    // Keep at least 30% of the width as side space (and the usual edge margin): a card that
+    // would take more steps down to the compact one, then shrinks only if it still cannot fit.
+    let max_width = (area.width() * (1.0 - HOME_PANEL_MIN_SIDE_SHARE))
+        .min((area.width() - 2.0 * HOME_PANEL_MARGIN).max(0.0))
+        .max(0.0);
+    let max_height = positive_clamp(area.height() - 2.0 * HOME_PANEL_MARGIN, 0.0, HOME_PANEL_MAX_HEIGHT);
+    let large = area.width().is_finite() && HOME_PANEL_WIDTH <= max_width;
+    let (panel_width, panel_height) = if large {
+        (HOME_PANEL_WIDTH, max_height)
+    } else {
+        // The compact card stays square, so a narrow canvas shrinks its height with it.
+        let side = HOME_PANEL_COMPACT_WIDTH.min(max_width).min(max_height);
+        (side, side)
+    };
     let panel = Rect::from_center_size(area.center(), vec2(panel_width, panel_height));
     let split = large && panel.height() >= 460.0;
     if !split {
@@ -486,28 +496,30 @@ mod tests {
 
     #[test]
     fn custom_home_keeps_two_fixed_card_sizes() {
-        // The large card is fixed at 900 × 560 whenever it fits with the margin.
-        for width in [948.0, 1280.0, 1920.0] {
+        // The large card is fixed at 900 × 560 while it still leaves 30% of the width at the sides.
+        for width in [1286.0, 1600.0, 1920.0] {
             let home = layout(Rect::from_min_size(Pos2::ZERO, vec2(width, 800.0)));
             assert_eq!(home.panel.size(), vec2(HOME_PANEL_WIDTH, HOME_PANEL_MAX_HEIGHT), "{width}");
             assert!(home.split, "{width}");
         }
-        // The compact card is square: same height, equal width, whatever room is left.
-        for width in [608.0, 800.0, 940.0] {
+        // Otherwise the compact card is a fixed square at the same height.
+        for width in [800.0, 900.0, 1280.0] {
             let home = layout(Rect::from_min_size(Pos2::ZERO, vec2(width, 800.0)));
             assert_eq!(home.panel.size(), vec2(HOME_PANEL_COMPACT_WIDTH, HOME_PANEL_MAX_HEIGHT), "{width}");
             assert_eq!(home.panel.width(), home.panel.height() * HOME_PANEL_COMPACT_ASPECT, "{width}");
             assert!(!home.split, "{width}");
         }
-        // Only a window smaller than the card itself clamps it.
-        let narrow = layout(Rect::from_min_size(Pos2::ZERO, vec2(520.0, 520.0)));
-        assert_eq!(narrow.panel.width(), 520.0 - 2.0 * HOME_PANEL_MARGIN);
-        assert_eq!(narrow.panel.height(), 520.0 - 2.0 * HOME_PANEL_MARGIN);
+        // A canvas narrower than the square shrinks it, still square.
+        for (width, side) in [(700.0, 490.0), (520.0, 364.0)] {
+            let home = layout(Rect::from_min_size(Pos2::ZERO, vec2(width, 620.0)));
+            assert!((home.panel.width() - side).abs() < 0.01, "{width}");
+            assert!((home.panel.height() - side).abs() < 0.01, "{width}");
+        }
     }
 
     #[test]
     fn custom_home_layout_is_contained_and_switches_to_compact_cleanly() {
-        for (size, should_split) in [(vec2(1280.0, 800.0), true), (vec2(620.0, 760.0), false), (vec2(420.0, 620.0), false)] {
+        for (size, should_split) in [(vec2(1920.0, 800.0), true), (vec2(1280.0, 800.0), false), (vec2(620.0, 760.0), false), (vec2(420.0, 620.0), false)] {
             let area = Rect::from_min_size(Pos2::ZERO, size);
             let home = layout(area);
             assert!(area.contains_rect(home.panel));

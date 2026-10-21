@@ -41,12 +41,9 @@ body:
       label: 使用场景
       description: 可多选
       options:
-        - label: 人像修图
-        - label: 风景与风光
-        - label: 静物与商品
-        - label: 日常随手拍
+        - label: 图片处理
+        - label: 绘画创作
         - label: 批量处理
-        - label: 创作与作品输出
     validations:
       required: false
   - type: input

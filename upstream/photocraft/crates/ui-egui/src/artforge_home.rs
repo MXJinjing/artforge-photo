@@ -17,7 +17,15 @@ pub(crate) fn use_custom_home(_kind: ThemeKind) -> bool {
 
 const HOME_RECENT_LIMIT: usize = 6;
 const HOME_RECENT_ROW: f32 = 34.0;
-const HOME_PANEL_MAX: Vec2 = vec2(900.0, 560.0);
+/// Two card sizes instead of a share of the screen: the large split card keeps a fixed width,
+/// and the compact card is square (1:1) at the same height. Only a window physically smaller
+/// than the card clamps it, so the card never overflows.
+const HOME_PANEL_WIDTH: f32 = 900.0;
+const HOME_PANEL_MAX_HEIGHT: f32 = 560.0;
+const HOME_PANEL_COMPACT_ASPECT: f32 = 1.0;
+const HOME_PANEL_COMPACT_WIDTH: f32 = HOME_PANEL_COMPACT_ASPECT * HOME_PANEL_MAX_HEIGHT;
+/// Space kept between the card and the canvas edge before the fixed size is clamped.
+const HOME_PANEL_MARGIN: f32 = 24.0;
 
 #[derive(Clone, Copy, Debug)]
 struct HomeLayout {
@@ -108,12 +116,15 @@ pub(crate) fn start_screen(app: &mut PhotocraftApp, ui: &mut Ui) {
 }
 
 fn layout(area: Rect) -> HomeLayout {
-    let pad_x = positive_clamp(area.width() * 0.13, 28.0, 124.0);
-    let pad_y = positive_clamp(area.height() * 0.13, 26.0, 104.0);
-    let bounds = area.shrink2(vec2(pad_x, pad_y));
-    let panel_size = vec2(positive_clamp(bounds.width(), 0.0, HOME_PANEL_MAX.x), positive_clamp(bounds.height(), 0.0, HOME_PANEL_MAX.y));
-    let panel = Rect::from_center_size(bounds.center(), panel_size);
-    let split = panel.width() >= 740.0 && panel.height() >= 460.0;
+    // The large card is chosen only when it fits with its margin; otherwise the compact one.
+    let large = area.width() >= HOME_PANEL_WIDTH + 2.0 * HOME_PANEL_MARGIN;
+    let wanted_width = if large { HOME_PANEL_WIDTH } else { HOME_PANEL_COMPACT_WIDTH };
+    // Fixed sizes: the margin only gives way on a window smaller than the card itself.
+    let available_width = (area.width() - 2.0 * HOME_PANEL_MARGIN).max(0.0);
+    let panel_width = positive_clamp(wanted_width, 0.0, available_width);
+    let panel_height = positive_clamp(area.height() - 2.0 * HOME_PANEL_MARGIN, 0.0, HOME_PANEL_MAX_HEIGHT);
+    let panel = Rect::from_center_size(area.center(), vec2(panel_width, panel_height));
+    let split = large && panel.height() >= 460.0;
     if !split {
         return HomeLayout { panel, content: panel.shrink2(vec2(26.0, 24.0)), art: panel, split };
     }
@@ -518,6 +529,36 @@ mod tests {
         let points = rotated_rect(Rect::from_center_size(Pos2::ZERO, vec2(20.0, 10.0)), 0.5);
         assert_eq!(points.len(), 4);
         assert!(points.iter().all(|point| point.x.is_finite() && point.y.is_finite()));
+    }
+
+    #[test]
+    fn recent_remove_is_available_without_hover_and_does_not_open_file() {
+        use egui_kittest::kittest::Queryable;
+
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        app.ui.recent_files = vec!["/recent/first.png".into(), "/recent/second.png".into()];
+        let mut h = egui_kittest::Harness::builder().with_size(vec2(640.0, 240.0)).build_ui_state(
+            |ui, (app, ready): &mut (PhotocraftApp, bool)| {
+                if *ready {
+                    let recent = app.ui.recent_files.clone();
+                    paint_recent(app, ui, &Palette::new(&Tokens::for_kind(ThemeKind::ArkuiProDark)), &recent);
+                }
+            },
+            (app, false),
+        );
+        PhotocraftApp::setup_context(&h.ctx, ThemeKind::ArkuiProDark);
+        h.state_mut().1 = true;
+        h.run_steps(3);
+
+        // No pointer has entered a row, so a hover-only button would be absent.
+        assert!(h.query_by_label("Remove first.png from Recent").is_some());
+        assert!(h.query_by_label("Remove second.png from Recent").is_some());
+        h.get_by_label("Remove first.png from Recent").click();
+        h.run_steps(3);
+        assert_eq!(h.state().0.ui.recent_files, vec!["/recent/second.png"]);
+        assert!(h.state().0.ui.dialogs.is_empty(), "removing must not try to open the missing file");
+        assert!(h.query_by_label("Remove first.png from Recent").is_none());
+        assert!(h.query_by_label("Remove second.png from Recent").is_some());
     }
 
     #[test]

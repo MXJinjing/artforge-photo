@@ -522,15 +522,27 @@ fn about_tab_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, tab: &str) {
         _ => {
             #[cfg(feature = "harmonyos-ui")]
             {
-                // Icon + large product name, then the current HAP version centered under them.
+                // Icon + large product name as one centred group; the HAP version below it is
+                // centred too, so the header reads as one block.
+                //
+                // egui's horizontal layout always starts at the left edge (its main-axis
+                // alignment is fixed to `Align::LEFT`), so the group's width is measured here
+                // and the group is nudged into the middle of the dialog.
+                let side = 40.0;
+                let gap = 10.0;
+                let font = crate::theme::semibold(26.0);
+                let title = crate::brand::app_name();
+                let tokens = crate::theme::Tokens::get(ui.ctx());
+                let text_w = ui.painter().layout_no_wrap(title.into(), font.clone(), tokens.text).size().x;
+                let group_w = side + ui.spacing().item_spacing.x + gap + text_w;
                 ui.horizontal(|ui| {
-                    let side = 40.0;
+                    ui.add_space(((ui.available_width() - group_w) / 2.0).max(0.0));
                     let (mark, _) = ui.allocate_exact_size(egui::vec2(side, side), egui::Sense::hover());
                     crate::brand::paint_mark(ui, mark);
-                    ui.add_space(10.0);
+                    ui.add_space(gap);
                     ui.vertical(|ui| {
                         ui.add_space(4.0);
-                        ui.label(egui::RichText::new(crate::brand::app_name()).font(crate::theme::semibold(26.0)));
+                        ui.label(egui::RichText::new(title).font(font));
                     });
                 });
                 ui.add_space(10.0);
@@ -1051,5 +1063,27 @@ mod tests {
         for label in ["Fit Image", "Width", "Height", "OK", "Cancel"] {
             assert!(window.contains_rect(h.get_by_label(label).rect()), "{label} inside the window");
         }
+    }
+
+    /// The HarmonyOS About header (app icon + product name) sits in the middle of the dialog,
+    /// on the same axis as the centred HAP version under it.
+    #[cfg(feature = "harmonyos-ui")]
+    #[test]
+    fn the_about_header_is_centred() {
+        use egui_kittest::kittest::Queryable;
+        let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(|cc| {
+            crate::PhotocraftApp::setup_context(&cc.egui_ctx, Default::default());
+            crate::PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default())
+        });
+        h.state_mut().ui.open_dialog(crate::state::DialogKind::About, Default::default());
+        h.run_steps(6);
+        let mark = crate::brand::mark_rect(&h.ctx).expect("the About icon");
+        let title = h.query_by_label(crate::brand::app_name()).expect("the product name").rect();
+        // The HAP version under the header is centred, so it marks the dialog's middle.
+        let version = h.query_by_label_contains("HarmonyOS HAP: ").expect("the HAP version").rect();
+        // The icon belongs to the About header, not to the title bar: it sits next to the name.
+        assert!(title.left() - mark.right() < 30.0, "the icon is not beside the name: {mark:?} {title:?}");
+        let header_center = (mark.left() + title.right()) / 2.0;
+        assert!((header_center - version.center().x).abs() < 2.0, "header centred at {header_center}, dialog middle at {}", version.center().x);
     }
 }

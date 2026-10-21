@@ -100,7 +100,7 @@
 鸿蒙构建的「帮助」菜单提供两个联网入口：
 
 - **隐私政策**：直接打开华为托管生成的协议页 `https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=2066016208368459456`（Rust 侧 `links::PRIVACY_STATEMENT`）。
-- **报告问题…**：打开本应用的问题反馈仓库 `https://gitcode.com/MXJinjing/artforge-photo`（Rust 侧 `links::ISSUES`，复用上游 `help.reportIssue` 菜单项与样式）。
+- **报告问题…**：打开本应用的问题反馈仓库 `https://gitcode.com/MXJinjing/artforge-photo-report`（Rust 侧 `links::ISSUES`，复用上游 `help.reportIssue` 菜单项与样式）。
 
 两者都是普通 https 链接，由 ArkTS `pages/Index.ets` 用 `ohos.want.action.viewData` + `entity.system.browsable` 交给系统浏览器打开。
 

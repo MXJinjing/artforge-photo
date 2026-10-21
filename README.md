@@ -75,7 +75,7 @@ Adobe、Photoshop 等是 Adobe Inc. 的商标。本应用为独立作品，与 A
 | 菜单项 | 打开的地址 |
 | --- | --- |
 | **隐私政策** | 华为协议托管页 `https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=2066016208368459456` |
-| **报告问题…** | 本应用的问题反馈仓库 `https://gitcode.com/MXJinjing/artforge-photo` |
+| **报告问题…** | 本应用的问题反馈仓库 `https://gitcode.com/MXJinjing/artforge-photo-report` |
 
 两者都通过系统浏览器打开（`ohos.want.action.viewData` + `entity.system.browsable`）。**没有「用户协议」入口**：本应用无账号体系、无联网功能，除打开上述链接外不发起任何网络请求。
 

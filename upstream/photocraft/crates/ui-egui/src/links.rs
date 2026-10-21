@@ -32,7 +32,7 @@ pub const PRIVACY_STATEMENT: &str = "https://agreement-drcn.hispace.dbankcloud.c
 
 /// HarmonyOS: the public issue tracker for this app (Help › 问题反馈).
 #[cfg(feature = "harmonyos-ui")]
-pub const ISSUES: &str = "https://gitcode.com/MXJinjing/artforge-photo";
+pub const ISSUES: &str = "https://gitcode.com/MXJinjing/artforge-photo-report";
 
 /// Upstream PhotoCraft (desktop / Web) open-source repository.
 pub const PHOTOCRAFT_GITHUB: &str = "https://github.com/storytold/photocraft";

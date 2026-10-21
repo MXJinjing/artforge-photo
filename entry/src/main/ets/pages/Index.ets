@@ -277,14 +277,19 @@ struct Index {
     else if (request.kind === 'close') {
       allowConfirmedClose(); this.context.terminateSelf();
     } else if (request.kind === 'url') {
-      // Help › 隐私政策 / 用户协议：伪协议由 getAppPrivacyMgmtInfo 解析为托管 https 链接。
+      // Help › 隐私政策 / 问题反馈：普通 https 链接交由系统浏览器打开；
+      // artforge-privacy:// 伪协议仍由 getAppPrivacyMgmtInfo 解析为托管链接。
       if (isHostedPrivacyScheme(request.text)) {
         if (!openHostedPrivacyScheme(this.context, request.text)) {
           this.failure = '暂无可用的隐私托管链接。请确认已在应用市场完成隐私托管配置，或在系统弹窗中同意隐私政策后再试。';
         }
       } else {
-        this.context.startAbility({ action: 'ohos.want.action.viewData', uri: request.text })
-          .catch((error: BusinessError) => { console.error(`External link: ${error.message}`); });
+        // entities 缺省时浏览器无法匹配该隐式 Want，链接会打不开。
+        this.context.startAbility({
+          action: 'ohos.want.action.viewData',
+          entities: ['entity.system.browsable'],
+          uri: request.text
+        }).catch((error: BusinessError) => { console.error(`External link: ${error.message}`); });
       }
     }
   }

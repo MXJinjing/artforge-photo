@@ -2,9 +2,9 @@
 //! bar all open these. URLs follow the crafting-app pattern (`getartcraft.com/apps/<app>`,
 //! `github.com/storytold/<app>`).
 //!
-//! Under `harmonyos-ui`, project/community URLs are omitted from the Help menu. Privacy and
-//! user-agreement entries use host-resolved AppGallery privacy-management URLs
-//! (`artforge-privacy://…` sent to the ArkTS open_url bridge).
+//! Under `harmonyos-ui`, project/community URLs are omitted from the Help menu. The privacy
+//! statement opens the AppGallery-hosted agreement page, and the issue tracker is this app's
+//! own public report repository.
 
 use serde_json::{Value, json};
 
@@ -26,11 +26,13 @@ pub const GITHUB: &str = "https://github.com/storytold/photocraft";
 #[cfg(not(feature = "harmonyos-ui"))]
 pub const ISSUES: &str = "https://github.com/storytold/photocraft/issues";
 
-/// Sentinel schemes resolved by the HarmonyOS host via `getAppPrivacyMgmtInfo`.
+/// HarmonyOS: the AppGallery-hosted privacy agreement page (Help › 隐私政策).
 #[cfg(feature = "harmonyos-ui")]
-pub const PRIVACY_STATEMENT: &str = "artforge-privacy://statement";
+pub const PRIVACY_STATEMENT: &str = "https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=2066016208368459456";
+
+/// HarmonyOS: the public issue tracker for this app (Help › 问题反馈).
 #[cfg(feature = "harmonyos-ui")]
-pub const USER_AGREEMENT: &str = "artforge-privacy://agreement";
+pub const ISSUES: &str = "https://gitcode.com/MXJinjing/artforge-photo";
 
 /// Upstream PhotoCraft (desktop / Web) open-source repository.
 pub const PHOTOCRAFT_GITHUB: &str = "https://github.com/storytold/photocraft";
@@ -43,8 +45,7 @@ pub const COMMANDS: &[(&str, &str)] =
     &[("help.discord", DISCORD), ("help.website", APP_PAGE), ("help.artcraftWebsite", ARTCRAFT_WEBSITE), ("help.github", GITHUB), ("help.reportIssue", ISSUES)];
 
 #[cfg(feature = "harmonyos-ui")]
-pub const COMMANDS: &[(&str, &str)] =
-    &[("help.privacyPolicy", PRIVACY_STATEMENT), ("help.userAgreement", USER_AGREEMENT)];
+pub const COMMANDS: &[(&str, &str)] = &[("help.privacyPolicy", PRIVACY_STATEMENT), ("help.reportIssue", ISSUES)];
 
 pub fn url_for(id: &str) -> Option<&'static str> {
     COMMANDS.iter().find(|c| c.0 == id).map(|c| c.1)
@@ -86,7 +87,6 @@ pub fn link_row(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     #[cfg(feature = "harmonyos-ui")]
     {
         let _ = (app, ui);
-        return;
     }
     #[cfg(not(feature = "harmonyos-ui"))]
     {
@@ -185,16 +185,17 @@ mod tests {
 
     #[cfg(feature = "harmonyos-ui")]
     #[test]
-    fn harmonyos_help_menu_lists_privacy_links_and_local_information() {
+    fn harmonyos_help_menu_lists_privacy_link_issue_tracker_and_local_information() {
         let app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
         let help: Vec<String> = crate::menus::menu_items(&app).into_iter().filter(|i| i.path == ["Help"]).map(|i| i.id).collect();
-        assert_eq!(help, ["help.privacyPolicy", "help.userAgreement", "---", "help.systemInfo", "help.about"]);
+        assert_eq!(help, ["help.privacyPolicy", "help.reportIssue", "---", "help.systemInfo", "help.about"]);
         let links: Vec<&str> = crate::menus::UI_COMMANDS.iter().filter(|c| url_for(c.0).is_some()).map(|c| c.0).collect();
-        assert_eq!(links, ["help.privacyPolicy", "help.userAgreement"]);
+        assert_eq!(links, ["help.privacyPolicy", "help.reportIssue"]);
         assert_eq!(url_for("help.privacyPolicy"), Some(PRIVACY_STATEMENT));
-        assert_eq!(url_for("help.userAgreement"), Some(USER_AGREEMENT));
+        assert_eq!(url_for("help.reportIssue"), Some(ISSUES));
+        // No user agreement: the app has no account system and no networking.
+        assert!(url_for("help.userAgreement").is_none());
         assert!(url_for("help.github").is_none());
-        assert!(url_for("help.reportIssue").is_none());
         assert!(url_for("help.discord").is_none());
         assert!(!DISCORD.contains("discord"));
     }
@@ -226,9 +227,9 @@ mod tests {
         for label in ["Discord", "Join us on Discord", "PhotoCraft website", "ArtCraft"] {
             assert!(h.query_by_label(label).is_none(), "home: {label}");
         }
-        // Help must not list GitHub / issue; About is the OSS credit surface.
+        // Help must not list GitHub / Discord; About is the OSS credit surface.
         let help: Vec<String> = crate::menus::menu_items(h.state()).into_iter().filter(|i| i.path == ["Help"]).map(|i| i.id).collect();
-        assert!(!help.iter().any(|id| id == "help.github" || id == "help.reportIssue" || id == "help.discord"));
+        assert!(!help.iter().any(|id| id == "help.github" || id == "help.discord"));
 
         for tab in ["about", "contributors", "models"] {
             h.state_mut().ui.dialogs.clear();

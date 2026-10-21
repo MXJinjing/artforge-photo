@@ -25,7 +25,7 @@
 4. 按下方「模板填写对照」如实勾选与填写。
 5. 预览无误后 **生成协议**。
 6. 在待发布版本的「隐私声明」中选择 **隐私托管**，并关联刚生成的协议。
-7. 将生成后的 **隐私政策 https 链接** 记下来，填回本仓库 README「隐私政策 URL」处，并按需写入 debug `module.json5` metadata（见下文）。
+7. 将生成后的 **隐私政策 https 链接** 记下来（已填入 `links.rs` 的 `PRIVACY_STATEMENT` 与 README「帮助菜单」表格；若重新生成需同步更新），并按需写入 debug `module.json5` metadata（见下文）。
 
 > 托管启用后：**不要**再在应用内自行实现首启隐私弹窗，否则可能因重复弹窗被拒。本仓库代码使用 `privacyManager` **查询签署状态并延后业务初始化**，不自绘系统级同意窗。
 
@@ -97,10 +97,16 @@
 
 ### 帮助菜单入口
 
-鸿蒙构建的「帮助」菜单不再提供 GitHub / 问题反馈 / Discord 链接。改为：
+鸿蒙构建的「帮助」菜单提供两个联网入口：
 
-- **隐私政策**、**用户协议**：通过 `getAppPrivacyMgmtInfo` 打开华为托管下发的 https 链接（Rust 侧使用 `artforge-privacy://statement|agreement` 伪协议，由 ArkTS `PrivacyConsent.openHostedPrivacyScheme` 解析）。
-- 若托管尚未配置或 API 暂无链接，界面提示中文说明，不自绘首启弹窗。
+- **隐私政策**：直接打开华为托管生成的协议页 `https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=2066016208368459456`（Rust 侧 `links::PRIVACY_STATEMENT`）。
+- **报告问题…**：打开本应用的问题反馈仓库 `https://gitcode.com/MXJinjing/artforge-photo`（Rust 侧 `links::ISSUES`，复用上游 `help.reportIssue` 菜单项与样式）。
+
+两者都是普通 https 链接，由 ArkTS `pages/Index.ets` 用 `ohos.want.action.viewData` + `entity.system.browsable` 交给系统浏览器打开。
+
+不再提供 **用户协议** 入口：应用无账号体系、无云同步、无第三方登录，当前仅在用户主动点击上述链接时产生网络请求。首启同意仍由系统托管弹窗负责（`privacyManager`），应用内不自绘弹窗。
+
+> `artforge-privacy://statement|agreement` 伪协议通道（`PrivacyConsent.openHostedPrivacyScheme`）保留备用：Rust 侧改为直链后不再下发该 scheme，加载页的「查看隐私声明」仍直接调用 `openHostedPrivacyStatement` 走托管查询。
 
 
 ### 上架前 debug 模拟弹窗（可选）
@@ -130,5 +136,5 @@
 
 1. 在 AGC 按本文填写并生成隐私政策，关联版本。  
 2. 把真实联系邮箱写入 AGC 与 `docs/privacy-policy.md` / `.html` / 字符串资源。  
-3. 把华为生成的隐私政策 URL 写进 README。  
+3. 若 AGC 重新生成了隐私政策导致协议页 URL 变化，同步更新 `upstream/photocraft/crates/ui-egui/src/links.rs` 的 `PRIVACY_STATEMENT` 与 README「帮助菜单」表格。  
 4. （可选）配置 debug metadata 做真机弹窗联调。

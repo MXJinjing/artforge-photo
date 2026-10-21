@@ -68,6 +68,17 @@ Adobe、Photoshop 等是 Adobe Inc. 的商标。本应用为独立作品，与 A
 2. 未同意时订阅 `usual.event.PRIVACY_STATE_CHANGED`；**同意后再**执行 `native.init` 与打印等业务。
 3. 「查看隐私声明」入口通过 `privacyManager.getAppPrivacyMgmtInfo()` 取托管链接，不写死自建 URL。
 
+### 帮助菜单
+
+「帮助」菜单下的两个联网入口：
+
+| 菜单项 | 打开的地址 |
+| --- | --- |
+| **隐私政策** | 华为协议托管页 `https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=2066016208368459456` |
+| **报告问题…** | 本应用的问题反馈仓库 `https://gitcode.com/MXJinjing/artforge-photo` |
+
+两者都通过系统浏览器打开（`ohos.want.action.viewData` + `entity.system.browsable`）。**没有「用户协议」入口**：本应用无账号体系、无联网功能，除打开上述链接外不发起任何网络请求。
+
 ### 你需要在 AGC 完成
 
 1. 开发者中心 → 应用 **艺工坊·修图**（`wang.jinjing.artforge.photo`）→ 协议服务 / 隐私声明。

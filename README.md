@@ -58,15 +58,11 @@ Adobe、Photoshop 等是 Adobe Inc. 的商标。本应用为独立作品，与 A
 
 ---
 
-## 隐私声明托管（华为 AppGallery）
+## 首次启动隐私提示（自有网站）
 
-本应用走 **AGC 标准化隐私声明托管**：系统负责首启同意弹窗，应用内**不自绘**首启隐私窗（重复弹窗会被拒审）。
+首次启动显示应用自己的隐私弹窗，提供《隐私政策》链接、“同意并继续”和“不同意并退出”。点击政策后在同一弹窗内显示网站页面，并提供“在浏览器中打开”；阅读时隐藏同意和拒绝按钮，返回仍需明确选择；仅点击同意且记录成功写入本地后才初始化原生编辑器、文档目录与打印业务。
 
-应用侧行为（`entry/src/main/ets/privacy/PrivacyConsent.ets`）：
-
-1. 启动时 `privacyManager.getAppPrivacyResult()` 查询签署状态（0 不同意 / 1 同意完整模式 / 2 需重签）。
-2. 未同意时订阅 `usual.event.PRIVACY_STATE_CHANGED`；**同意后再**执行 `native.init` 与打印等业务。
-3. 「查看隐私声明」入口通过 `privacyManager.getAppPrivacyMgmtInfo()` 取托管链接，不写死自建 URL。
+`PrivacyConsent.ets` 使用本地 Preferences 保存当前政策版本，不依赖华为隐私托管。读取或写入失败时不自动放行。涉及信息处理方式的政策更新时递增 `PRIVACY_CONSENT_VERSION`，旧同意记录随即失效。政策阅读组件仅在用户主动点击时加载网站，未启用 JavaScript 或文件访问。
 
 ### 帮助菜单
 
@@ -74,20 +70,15 @@ Adobe、Photoshop 等是 Adobe Inc. 的商标。本应用为独立作品，与 A
 
 | 菜单项 | 打开的地址 |
 | --- | --- |
-| **隐私政策** | 华为协议托管页 `https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=2066016208368459456` |
+| **隐私政策** | `https://www.a999.cloud/statics/artforge-photo-privacy-policy.html` |
 | **报告问题…** | 本应用的问题反馈仓库 `https://gitcode.com/MXJinjing/artforge-photo-report` |
 
-两者都通过系统浏览器打开（`ohos.want.action.viewData` + `entity.system.browsable`）。**没有「用户协议」入口**：本应用无账号体系、无联网功能，除打开上述链接外不发起任何网络请求。
+两者都通过系统浏览器打开（`ohos.want.action.viewData` + `entity.system.browsable`）。**没有「用户协议」入口**：本应用无账号体系，图片编辑在本地完成；应用自身不向远程服务器上传用户信息。
 
-### 你需要在 AGC 完成
 
-1. 开发者中心 → 应用 **艺工坊·修图**（`io.github.mxjinjing.artforge.photo`）→ 协议服务 / 隐私声明。
-2. 新建隐私政策（HarmonyOS 应用模板）→ 生成 → 版本选择 **隐私托管**。
-3. 填写对照见 [`docs/huawei-privacy-hosting.md`](docs/huawei-privacy-hosting.md)。
+### 开发与侧载环境中的隐私确认
 
-### Debug 模拟弹窗（未上架）
-
-`entry/src/main/module.json5` 内已有 **DEBUG ONLY** `metadata`（`appgallery_privacy_hosted=1` + 占位 https URL）。用 **debug 包 + 真机** 可模拟系统弹窗；上架并关联托管后，请删除该 metadata 或将 hosted 改为 `"0"`，正式声明以 AGC 为准。细节见同文档。
+调试、侧载和正式包使用同一套首启提示。清除应用数据后可重新验证。`module.json5` 已移除华为托管 metadata；上架后台使用自定义隐私政策 URL，详见 [隐私配置与验收说明](docs/huawei-privacy-hosting.md)。
 
 ## 许可证
 

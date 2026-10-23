@@ -1,108 +1,51 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>艺工坊·修图 隐私政策</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="format-detection" content="telephone=no">
+  <title>艺工坊·修图隐私声明</title>
   <style>
-    :root { color-scheme: light dark; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC",
-        "Microsoft YaHei", sans-serif;
-      line-height: 1.7;
-      max-width: 40rem;
-      margin: 0 auto;
-      padding: 1.25rem 1rem 3rem;
-      color: #1a1a1a;
-      background: #fafafa;
-    }
-    @media (prefers-color-scheme: dark) {
-      body { color: #f0f0f0; background: #121212; }
-      table { border-color: #444; }
-      th, td { border-color: #444; }
-      code { background: #2a2a2a; }
-    }
-    h1 { font-size: 1.45rem; margin-bottom: 0.4rem; }
-    h2 { font-size: 1.15rem; margin-top: 1.75rem; }
-    h3 { font-size: 1.02rem; margin-top: 1.2rem; }
-    .meta { color: #666; font-size: 0.92rem; margin-bottom: 1.5rem; }
-    table { border-collapse: collapse; width: 100%; font-size: 0.92rem; margin: 0.75rem 0; }
-    th, td { border: 1px solid #ddd; padding: 0.45rem 0.55rem; text-align: left; vertical-align: top; }
-    th { background: rgba(0,0,0,0.04); }
-    code { font-size: 0.88em; padding: 0.1em 0.35em; border-radius: 4px; background: #eee; }
-    .warn { border-left: 3px solid #c45; padding: 0.5rem 0.75rem; margin: 1rem 0; background: rgba(204,68,85,0.08); }
-    a { color: #0b57d0; }
+    :root { color-scheme: light dark; --bg:#f6f7f9; --paper:#fff; --text:#20242b; --muted:#667085; --line:#e4e7ec; --link:#3157a4; }
+    * { box-sizing:border-box; }
+    body { margin:0; padding:28px 16px 48px; color:var(--text); background:var(--bg); font:16px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif; }
+    main { max-width:760px; margin:auto; padding:clamp(24px,5vw,48px); background:var(--paper); border:1px solid var(--line); border-radius:14px; }
+    h1 { margin:0 0 6px; font-size:clamp(25px,5vw,32px); line-height:1.4; }
+    h2 { margin:28px 0 8px; font-size:18px; }
+    p { margin:8px 0; }
+    .meta { margin:0 0 24px; color:var(--muted); font-size:14px; }
+    a { color:var(--link); overflow-wrap:anywhere; }
+    .contact { padding:12px 16px; border:1px solid var(--line); border-radius:8px; }
+    @media (prefers-color-scheme:dark) { :root { --bg:#111318; --paper:#191c22; --text:#edf0f5; --muted:#a0a8b5; --line:#343943; --link:#9bb8ff; } }
   </style>
 </head>
 <body>
-  <h1>艺工坊·修图（ArtForge Photo）隐私政策</h1>
-  <p class="meta">更新日期：2026年10月20日　·　生效日期：2026年10月20日</p>
+  <main>
+    <h1>艺工坊·修图隐私声明</h1>
+    <p class="meta">更新日期：2026年10月22日　·　生效日期：2026年10月21日</p>
 
-  <h2>一、开发者与应用信息</h2>
-  <ul>
-    <li><strong>开发者身份</strong>：个人开发者（非企业）</li>
-    <li><strong>开发者</strong>：MXJinjing / wang.jinjing</li>
-    <li><strong>应用中文名</strong>：艺工坊·修图</li>
-    <li><strong>应用英文名</strong>：ArtForge Photo</li>
-    <li><strong>应用包名（bundleName）</strong>：<code>io.github.mxjinjing.artforge.photo</code></li>
-    <li><strong>适用范围</strong>：HarmonyOS 应用（平板、PC/2in1）</li>
-  </ul>
-  <p>本应用以<strong>本地、离线为主</strong>的图片编辑为定位。开发者未设立公司主体；文中「我们」指上述个人开发者。</p>
+    <p>艺工坊·修图由王金京（“我们”）提供，用于图片美化与设计。本声明说明本应用涉及的信息处理方式。</p>
+    <p><strong>本应用为单机程序，没有用于收集用户信息的远程业务服务器。我们不收集或上传您的个人信息。</strong>应用未设置账号，也未集成广告、统计分析、推送或第三方登录 SDK。</p>
 
-  <h2>二、我们如何收集和使用信息</h2>
-  <h3>2.1 基本原则</h3>
-  <p>本应用以设备本地处理图像为主，<strong>不要求注册账号</strong>，当前版本<strong>未集成</strong>统计分析 / 广告 / 推送 / 第三方账号登录 SDK。</p>
+    <h2>一、设备本地处理</h2>
+    <p>为实现您主动使用的功能，应用会在设备本地处理您通过系统选择器打开的图片或文件，以及您主动粘贴的剪贴板内容；编辑过程中可能产生本地配置、缓存和撤销记录。上述内容不会上传给我们。应用不会在后台扫描相册、文件或读取剪贴板。</p>
 
-  <h3>2.2 不主动收集的信息</h3>
-  <p>当前版本不收集：账号信息、IMEI/IMSI/OAID/MAC 等设备标识、位置、通讯录/通话/短信、应用列表，以及非您主动粘贴场景下的剪贴板画像用途数据。</p>
+    <h2>二、权限与网络</h2>
+    <p>图片和文件通过系统选择器由您选择；剪贴板仅在您主动使用粘贴等功能时读取；打印仅在您主动发起时调用系统打印服务。拒绝相关授权可能影响对应功能。</p>
+    <p>本应用声明的网络权限仅用于您主动查看在线隐私政策时访问该页面；应用不通过网络上传用户信息。您主动打开问题反馈等外部链接时，应用会调用系统浏览器访问目标网站，网络访问由浏览器处理，并适用浏览器及目标网站的规则。</p>
 
-  <h3>2.3 本地处理的数据</h3>
-  <ol>
-    <li>您主动打开或导入的图片 / 工程文件（编辑、导出等）。</li>
-    <li>您主动保存或导出的文件。</li>
-    <li>应用沙箱内的本地配置与缓存（界面偏好、临时编辑数据等）。</li>
-  </ol>
-  <p>上述内容默认<strong>不上传至开发者自有业务服务器</strong>（当前亦未运营此类收集后端）。</p>
+    <h2>三、存储与共享</h2>
+    <p>应用处理的数据保存在设备本地，不会传输或保存至我们运营的服务器，也不会由我们向第三方出售或共享。您可通过系统设置清除应用数据或卸载应用；自行导出到设备其他位置的文件由您管理。系统选择器、打印等系统服务按其提供方的规则运行。</p>
 
-  <h3>2.4 网络</h3>
-  <p>已声明 <code>ohos.permission.INTERNET</code>，用于打开外部链接等必要联网，<strong>不用于静默行为分析</strong>。</p>
+    <h2>四、您的权利</h2>
+    <p>您可自行决定是否选择或粘贴内容、撤回系统权限、停止使用相关功能及删除本地数据。如有隐私相关问题或请求，可通过下方邮箱联系我们。</p>
 
-  <h3>2.5 敏感个人信息</h3>
-  <p>您导入的照片可能含人脸等敏感信息，仅用于您主动发起的本地编辑，不用于营销。</p>
-
-  <h2>三、设备权限</h2>
-  <table>
-    <thead><tr><th>权限</th><th>用途</th><th>时机</th></tr></thead>
-    <tbody>
-      <tr><td><code>ohos.permission.PRINT</code></td><td>系统打印</td><td>您主动打印时</td></tr>
-      <tr><td><code>ohos.permission.INTERNET</code></td><td>外部链接等联网</td><td>相关功能触发时</td></tr>
-    </tbody>
-  </table>
-  <p>图库 / 文件访问通过系统选择器由您点选授权，不在后台批量读取相册。</p>
-
-  <h2>四、第三方 SDK 与共享</h2>
-  <p>当前<strong>无</strong>需披露的第三方统计/广告/推送/登录 SDK；不向第三方出售个人信息。系统打印与文件选择由操作系统能力完成。</p>
-
-  <h2>五、存储地点与期限</h2>
-  <p>默认仅存于您的设备本地；期限为实现功能所必要的最短时间。卸载或清除应用数据后，沙箱数据按系统规则删除。</p>
-
-  <h2>六、未成年人</h2>
-  <p>本应用不专门面向不满 14 周岁儿童，不主动收集儿童个人信息。监护人如有疑问请联系我们。</p>
-
-  <h2>七、您的权利</h2>
-  <p>您可知情、决定是否使用；通过系统清理或卸载删除本地数据；按系统/应用市场方式管理隐私同意。本应用无账号，卸载即结束使用。</p>
-
-  <h2>八、政策更新</h2>
-  <p>更新后将通过应用市场隐私声明托管或其他合理方式告知；重大变更将依法重新征得同意。</p>
-
-  <h2>九、联系我们</h2>
-  <div class="warn">
-    <strong>上架前请替换为真实联系邮箱。</strong><br />
-    联系邮箱：请替换为你的联系邮箱<br />
-    开发者：MXJinjing / wang.jinjing（个人）<br />
-    包名：<code>io.github.mxjinjing.artforge.photo</code>
-  </div>
-  <p>我们将在核实后尽快回复（通常不超过 15 个工作日）。</p>
-  <p class="meta">完整 Markdown 文稿见仓库 <code>docs/privacy-policy.md</code>。推荐使用华为「隐私声明托管」发布，见 <code>docs/huawei-privacy-hosting.md</code>。</p>
+    <h2>五、联系我们与声明更新</h2>
+    <div class="contact">
+      <p><strong>开发者：</strong>王金京（个人开发者）</p>
+      <p><strong>邮箱：</strong><a href="mailto:2352695206@qq.com">2352695206@qq.com</a></p>
+    </div>
+    <p>如应用功能或信息处理方式发生变化，我们将更新本声明并注明更新日期；依法需要征得同意的，将按要求处理。</p>
+  </main>
 </body>
 </html>

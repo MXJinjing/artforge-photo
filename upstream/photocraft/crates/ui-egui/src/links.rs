@@ -26,9 +26,9 @@ pub const GITHUB: &str = "https://github.com/storytold/photocraft";
 #[cfg(not(feature = "harmonyos-ui"))]
 pub const ISSUES: &str = "https://github.com/storytold/photocraft/issues";
 
-/// HarmonyOS: the AppGallery-hosted privacy agreement page (Help › 隐私政策).
+/// HarmonyOS: the app's remotely hosted privacy statement (Help › 隐私政策).
 #[cfg(feature = "harmonyos-ui")]
-pub const PRIVACY_STATEMENT: &str = "https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=2066334846698938048";
+pub const PRIVACY_STATEMENT: &str = "https://www.a999.cloud/statics/artforge-photo-privacy-policy.html";
 
 /// HarmonyOS: the public issue tracker for this app (Help › 问题反馈).
 #[cfg(feature = "harmonyos-ui")]

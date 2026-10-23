@@ -8,6 +8,7 @@ import { common } from '@kit.AbilityKit';
 import { fileIo, fileUri, picker } from '@kit.CoreFileKit';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { i18n } from '@kit.LocalizationKit';
+import { webview } from '@kit.ArkWeb';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { ComponentContent, KeyboardAvoidMode } from '@kit.ArkUI';
 import { applySystemBars, isDarkChrome, LOADING_CHROME, normalizeChrome } from '../SystemBars';
@@ -29,7 +30,8 @@ import { configureDisplayColor } from '../DisplayColor';
 import { SYSTEM_THEME_DARK, SYSTEM_THEME_LIGHT } from '../SystemTheme';
 import {
   PRIVACY_ALLOWED_KEY,
-  awaitPrivacyConsent,
+  PRIVACY_STATEMENT_URL,
+  savePrivacyConsent,
   isHostedPrivacyScheme,
   openHostedPrivacyScheme,
   openHostedPrivacyStatement,
@@ -118,8 +120,14 @@ struct Index {
   @StorageLink('photocraftChrome') @Watch('onChromeChanged') private chrome: string = LOADING_CHROME;
   @State private failure: string = '';
   @State private initialized: boolean = false;
-  /** 等待系统托管隐私弹窗同意；侧载无托管时立即 false。 */
+  /** 自有隐私提示：明确同意并保存前不启动编辑器。 */
   @State private privacyWaiting: boolean = true;
+  @State private privacySaving: boolean = false;
+  @State private privacyReading: boolean = false;
+  @State private privacyLoadFailed: boolean = false;
+  @State private privacyLoading: boolean = true;
+  private privacyWebController: webview.WebviewController = new webview.WebviewController();
+  @State private privacyError: string = '';
   @State private startupVisible: boolean = true;
   @State private startupOpacity: number = 1;
   @State private startupScale: number = 1;
@@ -182,22 +190,37 @@ struct Index {
     this.startupFading = false;
     this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.RESIZE);
     applySystemBars(this.context, this.chrome);
-    // 华为隐私托管：系统弹首启同意窗；同意前不 init 原生 / 不启动打印等业务。
-    // 切勿再自绘首启隐私 CustomDialog，否则与系统弹窗重复会被拒审。
     this.privacyWaiting = true;
-    awaitPrivacyConsent(this.context, (allowed: boolean): void => {
-      if (!this.alive) {
-        return;
-      }
-      if (!allowed) {
-        this.privacyWaiting = false;
-        return;
-      }
-      AppStorage.setOrCreate(PRIVACY_ALLOWED_KEY, true);
-      this.privacyWaiting = false;
-      this.printing.start();
-      this.generation++;
-      this.initializeHost(this.generation);
+    if (queryPrivacyAgreed(this.context)) {
+      this.startAfterPrivacyConsent();
+    }
+  }
+  private startAfterPrivacyConsent(): void {
+    if (!this.alive || !this.privacyWaiting) { return; }
+    AppStorage.setOrCreate(PRIVACY_ALLOWED_KEY, true);
+    this.privacyWaiting = false;
+    this.privacyError = '';
+    this.printing.start();
+    this.generation++;
+    this.initializeHost(this.generation);
+  }
+  private async agreePrivacy(): Promise<void> {
+    if (this.privacySaving || !this.privacyWaiting) { return; }
+    this.privacySaving = true;
+    this.privacyError = '';
+    try {
+      await savePrivacyConsent(this.context);
+      this.startAfterPrivacyConsent();
+    } catch (error) {
+      this.privacyError = '未能保存同意记录，请重试。';
+    } finally {
+      this.privacySaving = false;
+    }
+  }
+  private declinePrivacy(): void {
+    if (this.privacySaving) { return; }
+    this.context.terminateSelf().catch((error: BusinessError): void => {
+      this.privacyError = '退出失败，您可以关闭应用，或阅读隐私政策后重新选择。';
     });
   }
   private async initializeHost(generation: number): Promise<void> {
@@ -304,6 +327,10 @@ struct Index {
     native.input(JSON.stringify(input));
   }
   onBackPress(): boolean {
+    if (this.privacyWaiting) {
+      if (this.privacyReading) { this.privacyReading = false; } else { this.declinePrivacy(); }
+      return true;
+    }
     let input = new NativeInput(); input.kind = 'key'; input.code = 2070;
     native.input(JSON.stringify(input)); input.action = 1; native.input(JSON.stringify(input));
     return true;
@@ -360,7 +387,7 @@ struct Index {
       allowConfirmedClose(); this.context.terminateSelf();
     } else if (request.kind === 'url') {
       // Help › 隐私政策 / 问题反馈：普通 https 链接交由系统浏览器打开；
-      // artforge-privacy:// 伪协议仍由 getAppPrivacyMgmtInfo 解析为托管链接。
+      // artforge-privacy:// 兼容通道解析为网站隐私政策链接。
       if (isHostedPrivacyScheme(request.text)) {
         if (!openHostedPrivacyScheme(this.context, request.text)) {
           this.failure = '暂无可用的隐私托管链接。请确认已在应用市场完成隐私托管配置，或在系统弹窗中同意隐私政策后再试。';
@@ -399,7 +426,13 @@ struct Index {
   private restoreEditorFocus(): void {
     // 系统选择器或弹窗关闭后恢复 XComponent 焦点，硬件快捷键才能继续到达编辑器。
     if (this.alive && this.initialized) {
-      this.getUIContext().getFocusController().requestFocus('photocraft-editor');
+      try {
+        this.getUIContext().getFocusController().requestFocus('photocraft-editor');
+      } catch (error) {
+        // 系统权限弹窗关闭时，ArkUI 可能仍在切换焦点；不要让恢复焦点失败
+        // 变成未处理的异步异常（尤其是剪贴板单次授权返回时）。
+        console.info(`Editor focus restore deferred: ${(error as Error).message}`);
+      }
     }
   }
   private async openFile(id: number): Promise<void> {
@@ -723,28 +756,97 @@ struct Index {
         .id('photocraft-editor').focusable(true).defaultFocus(true).focusOnTouch(true)
         .onBlur(() => { this.cursor.reset(); let input = new NativeInput(); input.kind = 'blur'; native.input(JSON.stringify(input)); })
       } else if (this.privacyWaiting) {
-        Column({ space: 16 }) {
-          Text('请先在系统弹窗中确认隐私政策').fontSize(18).fontColor('#FFFFFF')
-          Text('同意后即可进入艺工坊·修图').fontSize(14).fontColor('#CCFFFFFF')
-          Button('查看隐私声明', { type: ButtonType.Normal })
-            .fontSize(14)
-            .onClick((): void => {
-              if (!openHostedPrivacyStatement(this.context)) {
-                this.failure = '暂无托管隐私声明链接（请先在 AGC 配置隐私托管，或启用 debug metadata）';
+        // 首启提示和网站政策阅读共用一个模态卡片，业务宿主始终等待明确同意。
+        Column() {
+          Column({ space: 20 }) {
+            if (this.privacyReading) {
+              Stack() {
+                Text('隐私政策').fontSize(20).fontWeight(FontWeight.Medium)
+                  .fontColor('#182431').width('100%').textAlign(TextAlign.Center)
+                  .hitTestBehavior(HitTestMode.None)
+                Row() {
+                  Button('返回', { type: ButtonType.Normal })
+                    .fontSize(16).fontColor('#0A59F7').backgroundColor(Color.Transparent)
+                    .height(40).onClick((): void => { this.privacyReading = false; })
+                  Blank()
+                  Button('在浏览器中打开', { type: ButtonType.Normal })
+                    .fontSize(14).fontColor('#0A59F7').backgroundColor(Color.Transparent)
+                    .height(40)
+                    .onClick((): void => { openHostedPrivacyStatement(this.context); })
+                }.width('100%')
+              }.width('100%').height(40)
+              // Web 仅用于用户主动打开的网站政策，图片编辑仍使用原生宿主。
+              if (this.privacyLoadFailed) {
+                Column({ space: 16 }) {
+                  Text('隐私政策暂时无法加载，请检查网络后重试。')
+                    .fontSize(16).fontColor('#5C626B')
+                  Button('重新加载').onClick((): void => { this.privacyLoading = true; this.privacyLoadFailed = false; })
+                }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
+              } else {
+                Stack() {
+                Web({ src: PRIVACY_STATEMENT_URL, controller: this.privacyWebController })
+                  .width('100%').height('100%').borderRadius(12).clip(true)
+                  .javaScriptAccess(false).fileAccess(false).domStorageAccess(false)
+                  .onErrorReceive((event) => {
+                    if (event?.request.isMainFrame()) { this.privacyLoadFailed = true; }
+                  })
+                  .onHttpErrorReceive((event) => {
+                    if (event?.request.isMainFrame() && event.response.getResponseCode() >= 400) {
+                      this.privacyLoadFailed = true;
+                    }
+                  })
+                    .onPageEnd((): void => { this.privacyLoading = false; })
+                  if (this.privacyLoading) {
+                    Column({ space: 12 }) {
+                      LoadingProgress().width(28).height(28).color('#0A59F7')
+                      Text('正在加载隐私政策…').fontSize(14).fontColor('#5C626B')
+                    }.width('100%').height('100%').justifyContent(FlexAlign.Center)
+                      .backgroundColor('#FFFFFF')
+                  }
+                }.width('100%').layoutWeight(1).borderRadius(12).clip(true)
               }
-            })
-          // 长按标题亦可打开（无设置页时的最小入口）
-          Text('艺工坊·修图')
-            .fontSize(12)
-            .fontColor('#88FFFFFF')
-            .margin({ top: 8 })
-            .gesture(
-              LongPressGesture({ repeat: false })
-                .onAction((): void => {
-                  openHostedPrivacyStatement(this.context);
-                })
-            )
+            } else {
+              Column() {
+                Blank().layoutWeight(1)
+                Column({ space: 24 }) {
+                  Image($r('app.media.app_icon')).width(84).height(84).borderRadius(20)
+                  Text('艺工坊·修图').fontSize(32).fontWeight(FontWeight.Medium)
+                    .fontColor('#182431').textAlign(TextAlign.Center).width('100%')
+                }.width('100%')
+                Blank().layoutWeight(2)
+              }.width('100%').layoutWeight(1)
+              Scroll() {
+                Text() {
+                  Span('欢迎使用艺工坊·修图。您可以通过').fontColor('#5C626B')
+                  Span('《艺工坊·修图隐私声明》').fontColor('#0A59F7')
+                    .onClick((): void => { this.privacyLoading = true; this.privacyLoadFailed = false; this.privacyReading = true; })
+                  Span('，了解信息处理方式及您的权利。点击“同意并继续”，表示您已知悉并同意我们为您提供本服务。').fontColor('#5C626B')
+                }.fontSize(13).lineHeight(21).width('100%')
+              }.constraintSize({ maxHeight: 180 }).width('100%').padding({ left: '20px', right: '20px' })
+            }
+            if (this.privacyError.length > 0) {
+              Text(this.privacyError).fontSize(14).fontColor('#B3261E').width('100%')
+            }
+            if (!this.privacyReading) {
+              Row({ space: 12 }) {
+                Button('不同意并退出', { type: ButtonType.Normal })
+                  .layoutWeight(1).height(44).borderRadius(22)
+                  .fontSize(13).fontColor('#0A59F7').backgroundColor('#F1F3F5')
+                  .enabled(!this.privacySaving)
+                  .onClick((): void => { this.declinePrivacy(); })
+                Button(this.privacySaving ? '正在保存…' : '同意并继续', { type: ButtonType.Normal })
+                  .layoutWeight(1).height(44).borderRadius(22)
+                  .fontSize(13).fontColor('#FFFFFF').backgroundColor('#0A59F7')
+                  .enabled(!this.privacySaving)
+                  .onClick((): void => { void this.agreePrivacy(); })
+              }.width('100%')
+            }
+          }
+          .padding(12).width('70%').height('69%').constraintSize({ maxWidth: 512, maxHeight: 576 })
+          .backgroundColor('#FFFFFF').borderRadius(24)
         }
+        .width('100%').height('100%').justifyContent(FlexAlign.Center)
+        .backgroundColor('#66000000')
       } else {
         Text('正在准备文档目录…').fontSize(18).fontColor('#FFFFFF')
       }
@@ -782,20 +884,8 @@ struct Index {
           if (!this.initialized) {
             Button('重试').onClick(() => {
               this.failure = '';
-              let gate = queryPrivacyAgreed();
-              if (gate === 'pending') {
-                this.privacyWaiting = true;
-                awaitPrivacyConsent(this.context, (allowed: boolean): void => {
-                  if (!this.alive || !allowed) { return; }
-                  AppStorage.setOrCreate(PRIVACY_ALLOWED_KEY, true);
-                  this.privacyWaiting = false;
-                  this.printing.start();
-                  this.generation++;
-                  this.initializeHost(this.generation);
-                });
-              } else {
-                this.initializeHost(this.generation);
-              }
+              if (this.privacyWaiting) { return; }
+              this.initializeHost(this.generation);
             })
           } else {
             Button('关闭提示').onClick(() => { this.failure = ''; })

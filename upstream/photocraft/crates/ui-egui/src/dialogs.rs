@@ -308,6 +308,25 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
                         ui.ctx().copy_text(crate::gpu_status::system_info(app).join("\n"));
                     }
                 }
+                DialogKind::About if fields.get("licenseInfo").and_then(Value::as_bool) == Some(true) => {
+                    ui.set_min_width(520.0);
+                    egui::ScrollArea::vertical().max_height((ctx.content_rect().height() - DIALOG_CHROME).max(180.0)).show(ui, |ui| {
+                        ui.vertical_centered(|ui| {
+                            ui.label(egui::RichText::new("MIT License").font(crate::theme::semibold(16.0)));
+                        });
+                        ui.add(egui::Label::new(egui::RichText::new(crate::links::LICENSE_MIT).monospace().size(11.0)).selectable(true));
+                        ui.add_space(12.0);
+                        ui.vertical_centered(|ui| {
+                            ui.label(egui::RichText::new("Apache License v2.0 ").font(crate::theme::semibold(16.0)));
+                        });
+                        ui.add(egui::Label::new(egui::RichText::new(crate::links::LICENSE_APACHE).monospace().size(11.0)).selectable(true));
+                        ui.add_space(12.0);
+                        ui.vertical_centered(|ui| {
+                            ui.label(egui::RichText::new("Upstream Notice").font(crate::theme::semibold(16.0)));
+                        });
+                        ui.add(egui::Label::new(egui::RichText::new(crate::links::LICENSE_NOTICE).monospace().size(11.0)).selectable(true));
+                    });
+                }
                 DialogKind::About => {
                     // Tabs About · Contributors · Models (craftrules standards/contributors.md). The
                     // tab is a dialog field, so automation can switch it with `ui.dialog.set`.
@@ -607,7 +626,8 @@ fn about_tab_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, tab: &str) {
                 });
                 ui.add_space(10.0);
                 let hap = photocraft_engine::build_info::hap_version().unwrap_or("unknown (not embedded)");
-                let version = format!("HarmonyOS HAP: {hap}");
+                let build_mode = if cfg!(any(debug_assertions, feature = "stylus-debug-menu")) { "debug" } else { "release" };
+                let version = format!("版本号: {hap} ({build_mode})");
                 ui.vertical_centered(|ui| {
                     ui.label(egui::RichText::new(version).color(crate::theme::Tokens::get(ui.ctx()).text_dim));
                 });
@@ -662,6 +682,7 @@ pub fn title(d: &Dialog) -> String {
     match d.kind {
         DialogKind::NewDocument => "New Document".into(),
         DialogKind::About if d.fields.get("systemInfo").and_then(Value::as_bool) == Some(true) => "System Info".into(),
+        DialogKind::About if d.fields.get("licenseInfo").and_then(Value::as_bool) == Some(true) => "Open-source licenses".into(),
         DialogKind::About => "About PhotoCraft".into(),
         DialogKind::LayerStyle => "Layer Style".into(),
         DialogKind::Command => d.fields.get("__label").and_then(Value::as_str).unwrap_or("Command").trim_end_matches('…').to_string(),
@@ -1218,7 +1239,7 @@ mod tests {
         let mark = crate::brand::mark_rect(&h.ctx).expect("the About icon");
         let title = h.query_by_label(crate::brand::app_name()).expect("the product name").rect();
         // The HAP version under the header is centred, so it marks the dialog's middle.
-        let version = h.query_by_label_contains("HarmonyOS HAP: ").expect("the HAP version").rect();
+        let version = h.query_by_label_contains("版本号: ").expect("the HAP version").rect();
         // The icon belongs to the About header, not to the title bar: it sits next to the name.
         assert!(title.left() - mark.right() < 30.0, "the icon is not beside the name: {mark:?} {title:?}");
         let header_center = (mark.left() + title.right()) / 2.0;

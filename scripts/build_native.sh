@@ -12,7 +12,8 @@ if [[ ! -d "$SDK/llvm" ]]; then
 fi
 [[ -x "$SDK/llvm/bin/clang" ]] || { echo "HarmonyOS native SDK not found: $SDK" >&2; exit 1; }
 TARGETS="${PHOTOCRAFT_NATIVE_TARGETS:-aarch64-unknown-linux-ohos}"
-PROFILE="${PHOTOCRAFT_RUST_PROFILE:-release}"
+PROFILE="${PHOTOCRAFT_RUST_PROFILE:-debug}"
+HAP_BUILD_MODE="${PHOTOCRAFT_HAP_BUILD_MODE:-$PROFILE}"
 HAP_VERSION="${PHOTOCRAFT_HAP_VERSION:-$(python3 - "$ROOT/AppScope/app.json5" <<'PYVERSION'
 import json
 import sys
@@ -25,6 +26,11 @@ PYVERSION
 ARGS=()
 # Explicit dev profile also avoids expanding an empty array under macOS Bash 3's nounset.
 case "$PROFILE" in release) ARGS+=(--release);; debug) ARGS+=(--profile dev);; *) echo 'Profile must be release or debug' >&2; exit 2;; esac
+case "$HAP_BUILD_MODE" in
+  debug) ARGS+=(--features stylus-debug-menu);;
+  release) ;;
+  *) echo 'HAP build mode must be debug or release' >&2; exit 2;;
+esac
 for target in $TARGETS; do
   case "$target" in aarch64-unknown-linux-ohos) ;; *) echo "Unsupported target: $target" >&2; exit 2;; esac
   [[ -d "$(rustc --print sysroot)/lib/rustlib/$target" ]] || { echo "Install target with: rustup target add $target" >&2; exit 1; }

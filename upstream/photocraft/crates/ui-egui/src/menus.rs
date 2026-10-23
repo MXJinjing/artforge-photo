@@ -970,6 +970,9 @@ pub fn menu_items(app: &PhotocraftApp) -> Vec<MenuItem> {
         });
     }
     for &(id, label, path, sc) in UI_COMMANDS {
+        if id == "help.stylusDebug" && !cfg!(any(debug_assertions, feature = "stylus-debug-menu")) {
+            continue;
+        }
         if cfg!(feature = "harmonyos-ui") && matches!(id, "help.discord" | "help.website" | "help.artcraftWebsite" | "help.github") {
             continue;
         }
@@ -1759,6 +1762,13 @@ pub fn apply_workspace(app: &mut PhotocraftApp) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stylus_debug_help_entry_requires_debug_build_or_feature() {
+        let app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        let present = menu_items(&app).iter().any(|item| item.id == "help.stylusDebug");
+        assert_eq!(present, cfg!(any(debug_assertions, feature = "stylus-debug-menu")));
+    }
 
     #[test]
     fn help_click_keeps_search_focus_through_resize_and_input() {

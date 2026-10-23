@@ -16,7 +16,7 @@ one_device() {
   [[ "$count" == 1 ]] || { echo "Connect exactly one simulator/device ($count found)" >&2; exit 1; }
 }
 build() {
-  "$ROOT/scripts/build_native.sh"
+  PHOTOCRAFT_RUST_PROFILE=release PHOTOCRAFT_HAP_BUILD_MODE=debug "$ROOT/scripts/build_native.sh"
   cd "$ROOT"
   "$OHPM" install
   "$HVIGOR" assembleHap --mode module -p product=default -p buildMode=debug --no-daemon

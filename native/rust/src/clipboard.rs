@@ -54,19 +54,19 @@ pub fn set_image(width: u32, height: u32, pixels: &[u8]) -> Result<(), String> {
     result
 }
 
-pub fn get_image() -> Option<(u32, u32, Vec<u8>)> {
+pub fn get_image() -> Result<Option<(u32, u32, Vec<u8>)>, String> {
     match bridge::request("clipboard_get_image", "", &[]) {
-        Ok((metadata, _)) if metadata.is_empty() => None,
+        Ok((metadata, _)) if metadata.is_empty() => Ok(None),
         Ok((metadata, pixels)) => match decode_image(&metadata, pixels) {
-            Ok(image) => Some(image),
+            Ok(image) => Ok(Some(image)),
             Err(error) => {
                 report_diagnostic(&error);
-                None
+                Err(error)
             }
         },
         Err(error) => {
             report_diagnostic(&error);
-            None
+            Err(error)
         }
     }
 }

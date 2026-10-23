@@ -122,6 +122,7 @@ pub fn about_oss_attribution(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let (pre, mid, post) = if zh { ("基于开源项目 ", " 与 ", "（MIT / Apache-2.0）") } else { ("Based on open-source ", " and ", " (MIT / Apache-2.0)") };
     ui.add_space(8.0);
     let mut clicked = None;
+    let mut show_licenses = false;
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
         ui.label(pre);
@@ -133,11 +134,26 @@ pub fn about_oss_attribution(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             clicked = Some(PHOTOCRAFT_HMOS_GITHUB);
         }
         ui.label(post);
+        let license_label = if zh { "（查看许可证）" } else { " (View licenses)" };
+        if ui.link(egui::RichText::new(license_label).color(crate::theme::Tokens::get(ui.ctx()).accent)).clicked() {
+            show_licenses = true;
+        }
     });
     if let Some(url) = clicked {
         open(app, ui.ctx(), url);
     }
+    if show_licenses {
+        app.ui.open_dialog(crate::state::DialogKind::About, serde_json::from_value(json!({"licenseInfo": true})).unwrap_or_default());
+    }
 }
+
+/// License texts shipped in the native HarmonyOS application.
+#[cfg(feature = "harmonyos-ui")]
+pub(crate) const LICENSE_MIT: &str = include_str!("../../../LICENSE-MIT");
+#[cfg(feature = "harmonyos-ui")]
+pub(crate) const LICENSE_APACHE: &str = include_str!("../../../LICENSE-APACHE");
+#[cfg(feature = "harmonyos-ui")]
+pub(crate) const LICENSE_NOTICE: &str = include_str!("../../../NOTICE");
 
 #[cfg(test)]
 mod tests {
@@ -196,7 +212,11 @@ mod tests {
     fn help_menu_lists_links_then_separator_then_system_info_and_about() {
         let app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
         let help: Vec<String> = crate::menus::menu_items(&app).into_iter().filter(|i| i.path == ["Help"]).map(|i| i.id).collect();
-        assert_eq!(help, ["help.discord", "help.website", "help.artcraftWebsite", "help.github", "help.reportIssue", "---", "help.systemInfo", "help.stylusDebug", "help.about"]);
+        if cfg!(any(debug_assertions, feature = "stylus-debug-menu")) {
+            assert_eq!(help, ["help.discord", "help.website", "help.artcraftWebsite", "help.github", "help.reportIssue", "---", "help.systemInfo", "help.stylusDebug", "help.about"]);
+        } else {
+            assert_eq!(help, ["help.discord", "help.website", "help.artcraftWebsite", "help.github", "help.reportIssue", "---", "help.systemInfo", "help.about"]);
+        }
         for (id, _) in COMMANDS {
             assert!(crate::menus::is_live(id) && crate::menus::is_enabled(&app, id), "{id}");
         }
@@ -207,7 +227,11 @@ mod tests {
     fn harmonyos_help_menu_lists_privacy_link_issue_tracker_and_local_information() {
         let app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
         let help: Vec<String> = crate::menus::menu_items(&app).into_iter().filter(|i| i.path == ["Help"]).map(|i| i.id).collect();
-        assert_eq!(help, ["help.privacyPolicy", "help.reportIssue", "---", "help.systemInfo", "help.stylusDebug", "help.about"]);
+        if cfg!(any(debug_assertions, feature = "stylus-debug-menu")) {
+            assert_eq!(help, ["help.privacyPolicy", "help.reportIssue", "---", "help.systemInfo", "help.stylusDebug", "help.about"]);
+        } else {
+            assert_eq!(help, ["help.privacyPolicy", "help.reportIssue", "---", "help.systemInfo", "help.about"]);
+        }
         let links: Vec<&str> = COMMANDS.iter().map(|c| c.0).collect();
         assert_eq!(links, ["help.privacyPolicy", "help.reportIssue"]);
         assert_eq!(url_for("help.privacyPolicy"), Some(PRIVACY_STATEMENT));
@@ -257,7 +281,7 @@ mod tests {
             assert!(h.query_by_label(&format!("About {}", crate::brand::APP_NAME)).is_some());
             assert!(h.query_by_label(crate::brand::app_name()).is_some(), "About heading shows the product name");
             assert!(crate::brand::mark_rect(&h.ctx).is_some(), "About paints the brand icon");
-            assert!(h.query_by_label_contains("HarmonyOS HAP: ").is_some(), "current HAP version is shown");
+            assert!(h.query_by_label_contains("版本号: ").is_some(), "current HAP version is shown");
             assert!(h.query_by_label_contains("open-source").is_some() || h.query_by_label_contains("开源项目").is_some());
             assert!(h.query_by_label_contains("MXJinjing").is_none(), "no maintainer blurb");
             assert!(h.query_by_label("PhotoCraft").is_some());

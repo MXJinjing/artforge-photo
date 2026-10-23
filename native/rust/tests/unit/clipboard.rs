@@ -36,7 +36,7 @@ fn hardware_copy_exports_selection_and_external_paste_adds_a_layer() {
                 *count.lock().unwrap() += 1;
                 Ok(())
             })),
-            clipboard_get_image: Some(Box::new(move || incoming.lock().unwrap().clone())),
+            clipboard_get_image: Some(Box::new(move || Ok(incoming.lock().unwrap().clone()))),
             ..Default::default()
         },
     );

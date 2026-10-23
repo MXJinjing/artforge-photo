@@ -21,6 +21,7 @@ class NativeProfileTests(unittest.TestCase):
         python = textwrap.dedent(prepare.split("          python3 - <<'PY'\n", 1)[1].split('\n          PY', 1)[0])
         rust_step = workflow.split('      - name: Build Rust native libraries\n', 1)[1].split('      - name:', 1)[0]
         self.assertIn('PHOTOCRAFT_RUST_PROFILE: ${{ steps.cfg.outputs.build_mode }}', rust_step)
+        self.assertIn('PHOTOCRAFT_HAP_BUILD_MODE: ${{ steps.cfg.outputs.build_mode }}', rust_step)
         self.assertIn('targets: aarch64-unknown-linux-ohos\n', workflow)
         self.assertNotIn('x86_64-unknown-linux-ohos', workflow)
         cmake = (ROOT / 'entry/src/main/cpp/CMakeLists.txt').read_text()
@@ -39,8 +40,14 @@ class NativeProfileTests(unittest.TestCase):
                 self.assertEqual(config['buildOption']['externalNativeOptions']['abiFilters'], ['arm64-v8a'])
 
     def test_native_script_selects_cargo_profile_for_arm64(self):
-        for mode, failed in (('debug', False), ('release', False), ('release', True)):
-            with self.subTest(mode=mode, failed=failed), tempfile.TemporaryDirectory() as directory:
+        for profile, hap_mode, failed, use_defaults in (
+            ('debug', 'debug', False, False),
+            ('release', 'release', False, False),
+            ('release', 'release', True, False),
+            ('debug', 'debug', False, True),
+            ('release', 'debug', False, False),
+        ):
+            with self.subTest(profile=profile, hap_mode=hap_mode, failed=failed, use_defaults=use_defaults), tempfile.TemporaryDirectory() as directory:
                 path = Path(directory)
                 (path / 'scripts').mkdir()
                 (path / 'AppScope').mkdir()
@@ -52,7 +59,7 @@ class NativeProfileTests(unittest.TestCase):
                 (debug / 'deps/stale.rlib').write_bytes(b'x' * 8192)
                 (debug / '.fingerprint').mkdir()
                 (debug / '.fingerprint/stale').write_text('stale')
-                arm64 = path / f'native/rust/target/aarch64-unknown-linux-ohos/{mode}'
+                arm64 = path / f'native/rust/target/aarch64-unknown-linux-ohos/{profile}'
                 arm64.mkdir(parents=True)
                 library = arm64 / 'libphotocraft_hmos.a'
                 (arm64 / 'deps').mkdir()
@@ -76,11 +83,15 @@ class NativeProfileTests(unittest.TestCase):
                     (bin_dir / name).chmod(0o755)
                 log = path / 'cargo.log'
                 env = dict(os.environ, PATH=str(bin_dir) + os.pathsep + os.environ['PATH'],
-                           PHOTOCRAFT_NATIVE_SDK=str(sdk), PHOTOCRAFT_RUST_PROFILE=mode,
+                           PHOTOCRAFT_NATIVE_SDK=str(sdk), PHOTOCRAFT_RUST_PROFILE=profile,
+                           PHOTOCRAFT_HAP_BUILD_MODE=hap_mode,
                            TEST_SYSROOT=str(path / 'sysroot'), TEST_CARGO_LOG=str(log),
                            TEST_HAP_VERSION=json.loads((path / 'AppScope/app.json5').read_text())['app']['versionName'],
                            TEST_DEBUG_ARTIFACT=str(debug / 'deps/stale.rlib'),
                            TEST_ARM64_LIBRARY=str(library), TEST_BUILD_FAIL='1' if failed else '0')
+                if use_defaults:
+                    env.pop('PHOTOCRAFT_RUST_PROFILE', None)
+                    env.pop('PHOTOCRAFT_HAP_BUILD_MODE', None)
                 env.pop('PHOTOCRAFT_NATIVE_TARGETS', None)
                 result = subprocess.run(['bash', str(path / 'scripts/build_native.sh')], env=env, capture_output=True, text=True)
                 if failed:
@@ -98,7 +109,9 @@ class NativeProfileTests(unittest.TestCase):
                 self.assertEqual(len(calls), 1)
                 for call, target in zip(calls, ('aarch64-unknown-linux-ohos',)):
                     self.assertIn('--target ' + target, call)
-                    self.assertEqual('--release' in call.split(), mode == 'release')
+                    self.assertEqual('--release' in call.split(), profile == 'release')
+                    self.assertEqual('--features stylus-debug-menu' in call, hap_mode == 'debug')
+                    self.assertEqual('--profile dev' in call, profile == 'debug')
 
 
 if __name__ == '__main__':

@@ -46,7 +46,9 @@ recognizer uses 400 ms for double-tap and 450 ms for its held-side-button squeez
 
 ## Help › Stylus Debug
 
-Open **Help › Stylus Debug…** without needing a document. On HarmonyOS this uses the existing
+In debug builds, open **Help › Stylus Debug…** without needing a document. Debug HarmonyOS HAPs
+enable this entry explicitly because their Rust library may use the release profile. Release HAPs
+hide it. On HarmonyOS this uses the existing
 native egui immediate-viewport sub-window host, with its own system title bar, surface and input;
 web hosts without native viewports embed it instead. On HarmonyOS use a real Pad and a pen
 that supports tilt and the desired body gestures; an emulator can check the window layout and

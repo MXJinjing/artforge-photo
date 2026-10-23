@@ -13,6 +13,8 @@ crate-type = ["staticlib", "rlib"]
 [features]
 # Simulator-only fault injection; never enabled in normal HAPs.
 host-recovery-test = []
+# Show stylus diagnostics in debug HAPs whose Rust library uses the release profile.
+stylus-debug-menu = ["photocraft-ui-egui/stylus-debug-menu"]
 
 [dependencies]
 photocraft-ui-egui = { path = "../../upstream/photocraft/crates/ui-egui", default-features = false, features = ["harmonyos-ui"] }

@@ -344,6 +344,7 @@ jobs:
       - name: Build Rust native libraries
         env:
           PHOTOCRAFT_RUST_PROFILE: ${{ steps.cfg.outputs.build_mode }}
+          PHOTOCRAFT_HAP_BUILD_MODE: ${{ steps.cfg.outputs.build_mode }}
           PHOTOCRAFT_NATIVE_TARGETS: aarch64-unknown-linux-ohos
         run: scripts/build_native.sh
 

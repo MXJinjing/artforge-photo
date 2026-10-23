@@ -65,6 +65,11 @@ The manifest declares:
 both an ACL in its signed Profile and runtime consent. Installing a HAP whose
 Profile lacks the ACL fails with error `9568289`.
 
+AppGallery also compares the package's `user_grant` permissions with the
+declaration in the hosted privacy statement, so the statement must list
+`READ_PASTEBOARD` (see `docs/huawei-privacy-hosting.md`). Otherwise the release
+is rejected with `只在软件包中的权限：[READ_PASTEBOARD]`.
+
 Run:
 
 ```bash

@@ -10,6 +10,8 @@ eframe-host = ["dep:eframe"]
 # HarmonyOS package: hide project promotion and detailed About credits.
 # LINUX_ONLY prefs (X11/Wayland) use target_env = "ohos", not this feature.
 harmonyos-ui = []
+# Allows a debug HAP to retain diagnostic UI when its Rust library uses the release profile.
+stylus-debug-menu = []
 
 [lints]
 workspace = true

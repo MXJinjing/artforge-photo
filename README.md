@@ -49,11 +49,33 @@ Adobe、Photoshop 等是 Adobe Inc. 的商标。本应用为独立作品，与 A
 
 ## 构建说明
 
-本仓库面向应用市场上架打包，默认不提供公开 Releases 侧载包。具备 HarmonyOS 开发者套件时，可从源码构建后使用 `hdc` 安装（构建流程与 `photocraft-hmos` 一致，参见该仓库文档与 `scripts/`）。
+本仓库面向应用市场上架打包，默认不提供公开 Releases 侧载包。构建需安装 HarmonyOS 开发者套件，并在 `scripts/dev.local.env` 中按需配置 SDK、hvigor 和 hdc 路径。
+
+### 编译 Rust 原生库
+
+```bash
+scripts/build_native.sh
+```
+
+默认使用 **debug** profile，并按 debug 模式编译；可显式选择 release：
+
+```bash
+PHOTOCRAFT_RUST_PROFILE=release PHOTOCRAFT_HAP_BUILD_MODE=release scripts/build_native.sh
+```
+
+`PHOTOCRAFT_RUST_PROFILE` 控制 Rust 库的 Cargo profile；`PHOTOCRAFT_HAP_BUILD_MODE` 控制应用的构建标记和调试菜单。未设置 HAP 模式时，它跟随 Rust profile。两项可分别设置，例如 debug HAP 使用 release profile 的 Rust 库：
+
+```bash
+PHOTOCRAFT_RUST_PROFILE=release PHOTOCRAFT_HAP_BUILD_MODE=debug scripts/build_native.sh
+```
+
+### 构建 HAP
+
+- **Debug HAP：** `scripts/dev.sh build` 构建并校验 unsigned HAP；`scripts/dev.sh run` 还会安装并启动应用，要求连接且仅连接一台设备或模拟器，并配置本地 debug 签名。
+- **Release 上架包：** `scripts/build_release.sh --version 0.12.0.2` 构建并校验签名后的 HAP 和 App Pack。需先配置本地 `build-profile.json5` 中名为 `release` 的签名项；签名材料不会提交到仓库。
+- **直接使用 DevEco Studio：** IDE 不会自动重编 Rust 库。构建 HAP 前，先用上面的命令编译与目标模式匹配的 Rust 库；当前 CMake 默认链接 release profile 的库。通常建议用 `scripts/dev.sh build` 或 `scripts/build_release.sh` 完成整套构建。
 
 建议系统版本为 **HarmonyOS 6.0** 及以上；原生库为 **arm64-v8a**。
-
----
 
 
 ---

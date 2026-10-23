@@ -687,7 +687,7 @@ fn worker(config: Config, rx: mpsc::Receiver<Message>) {
                         visible = false;
                         deadline = None;
                         render.detach();
-                        input.cancel(egui::Pos2::ZERO, &mut events);
+                        input.cancel(&mut events);
                     }
                     Message::WinAttach(key, ptr, w, h) => {
                         // The native reference is owned from here on; dropping it unrefs.
@@ -766,7 +766,7 @@ fn worker(config: Config, rx: mpsc::Receiver<Message>) {
                         } else {
                             ime.suspend();
                             deadline = None;
-                            input.cancel(egui::Pos2::ZERO, &mut events);
+                            input.cancel(&mut events);
                         }
                     }
                     Message::Input(mut value) => {

@@ -1020,6 +1020,8 @@ fn worker(config: Config, rx: mpsc::Receiver<Message>) {
                                 egui::OutputCommand::OpenUrl(url) => {
                                     bridge::notify(0, "url", &url.url, &[]);
                                 }
+                                // egui 0.37: selection-settled notices need no host action.
+                                egui::OutputCommand::TextSelectionSettled(_) => {}
                             }
                         }
                         // Sub-windows repaint with the root pass; honour their repaint requests.

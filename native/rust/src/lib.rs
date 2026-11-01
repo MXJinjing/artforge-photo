@@ -32,6 +32,7 @@ mod fullscreen;
 #[cfg(any(target_env = "ohos", test))]
 mod ime;
 mod input;
+mod installed_fonts;
 #[cfg(any(target_env = "ohos", test))]
 mod recovery;
 #[cfg(any(target_env = "ohos", test))]
@@ -113,8 +114,8 @@ fn services(
     let load = std::path::Path::new(files).join("native-preferences.json");
     let save = load.clone();
     Services {
-        import: Some(Box::new(move |name, bytes, max_svg_group_depth| {
-            photocraft_io::import_with_svg_group_depth(name, bytes, max_svg_group_depth)
+        import: Some(Box::new(move |name, bytes, opts| {
+            photocraft_io::import_with_options(name, bytes, opts)
                 .map(|r| (r.document, r.warnings))
                 .map_err(|e| e.to_string())
         })),
@@ -511,6 +512,9 @@ fn worker(config: Config, rx: mpsc::Receiver<Message>) {
     bridge::notify(0, "diagnostic", &working_directory, &[]);
     photocraft_ui_egui::i18n::set_host_locale(&config.language);
     photocraft_text::cjk::set_ui_locale(Some(&config.language));
+    // Fonts installed in Settings > 字体安装和管理, before any font database loads.
+    let installed_fonts = installed_fonts::register();
+    bridge::notify(0, "diagnostic", &format!("Installed fonts: {installed_fonts}"), &[]);
     let document_files = if config.documents.is_empty() {
         &config.files
     } else {

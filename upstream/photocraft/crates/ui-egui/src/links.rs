@@ -211,12 +211,26 @@ mod tests {
     #[test]
     fn help_menu_lists_links_then_separator_then_system_info_and_about() {
         let app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
-        let help: Vec<String> = crate::menus::menu_items(&app).into_iter().filter(|i| i.path == ["Help"]).map(|i| i.id).collect();
-        if cfg!(any(debug_assertions, feature = "stylus-debug-menu")) {
-            assert_eq!(help, ["help.discord", "help.website", "help.artcraftWebsite", "help.github", "help.reportIssue", "---", "help.systemInfo", "help.stylusDebug", "help.about"]);
-        } else {
-            assert_eq!(help, ["help.discord", "help.website", "help.artcraftWebsite", "help.github", "help.reportIssue", "---", "help.systemInfo", "help.about"]);
+        let mut help: Vec<String> = crate::menus::menu_items(&app).into_iter().filter(|i| i.path == ["Help"]).map(|i| i.id).collect();
+        // Help › Stylus Debug only exists in debug builds or with the stylus-debug-menu feature.
+        if !cfg!(any(debug_assertions, feature = "stylus-debug-menu")) {
+            help.insert(help.len() - 1, "help.stylusDebug".into());
         }
+        assert_eq!(
+            help,
+            [
+                "help.discord",
+                "help.website",
+                "help.artcraftWebsite",
+                "help.github",
+                "help.reportIssue",
+                "help.checkForUpdates",
+                "---",
+                "help.systemInfo",
+                "help.stylusDebug",
+                "help.about"
+            ]
+        );
         for (id, _) in COMMANDS {
             assert!(crate::menus::is_live(id) && crate::menus::is_enabled(&app, id), "{id}");
         }
